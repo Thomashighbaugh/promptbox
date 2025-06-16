@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.env
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data and Backups
+# These contain user-specific data and should not be version controlled.
+/data/
+/build/
+/backups/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Secrets
+# Although .env is standard, explicitly ignore other potential secret files.
+*.env
+secrets.toml
+.github/improvements
