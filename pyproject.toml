@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promptbox"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     { name="AI Software Architect", email="developer@example.com" },
 ]
-description = "A TUI application for managing, testing, and interacting with LLM prompts."
+description = "A Streamlit application for managing, testing, and interacting with LLM prompts, characters, and scenarios."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -18,11 +18,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Environment :: Console",
 ]
 
 dependencies = [
-    "rich>=13.7.1",
+    "streamlit>=1.33.0",
     "sqlalchemy>=2.0.29",
     "requests>=2.31.0",
     "langchain>=0.1.16",
@@ -41,6 +40,3 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "pydantic>=2.7.1",
 ]
-
-[project.scripts]
-promptbox = "promptbox.main:start"

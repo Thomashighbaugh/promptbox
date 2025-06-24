@@ -1,31 +1,49 @@
-# `promptbox`
+# `promptbox` - Streamlit Edition
 
-**A powerful, terminal-based toolkit for creating, managing, and interacting with Large Language Model (LLM) prompts.**
+**A user-friendly Streamlit application for creating, managing, testing, and interacting with Large Language Model (LLM) prompts, characters, and chat sessions.**
 
-`promptbox` is a local-first TUI (Text-based User Interface) designed for developers, writers, and prompt engineers who want a fast, efficient, and keyboard-driven workflow for their prompts. It helps you organize your prompt library, test prompts against multiple LLM providers, and maintain a history of your interactions.
+`promptbox` provides a local-first, web-based UI to streamline your workflow with LLMs. It helps you organize your prompt library, define reusable character/scenario cards, test them in an interactive chat interface, and save your valuable chat sessions for later review or continuation.
 
-I have wanted an application like this, using my Dropbox to nest prompts in folders but even this was not enough as I couldn't just run prompts there from the editor.
-
-![promptbox_screenshot](https://user-images.githubusercontent.com/12345/some-image-url.png) <!-- Placeholder for a future screenshot -->
+![promptbox_streamlit_screenshot_placeholder](https://via.placeholder.com/800x450.png?text=Promptbox+Streamlit+UI+Screenshot)
+_(Screenshot placeholder - to be updated with actual UI)_
 
 ---
 
 ## Core Features
 
-- **🗃️ Prompt Library:** Create, store, and manage your prompts in a local SQLite database. Organize them with names, descriptions, folders, and tags.
-- **⚡️ Interactive Chat:** Test any prompt in an interactive chat session. The UI is clean, responsive, and designed for conversation.
-- **🌐 Multi-Provider Support:** Seamlessly switch between different LLM providers (with free tiers that I use, you can PR openai if you are willing to support it or tell me about other free providers as you wish) and models for any chat session. `promptbox` dynamically fetches the available models from each provider's API.
-  - Ollama (for local models)
-  - Mistral
-  - Groq
-  - Google (Gemini)
-  - Cerebras
-- **🤖 AI-Powered Improvement:** Use one LLM to analyze and improve a prompt you've written. Get suggestions for clarity, effectiveness, and robustness.
-- **🔍 Full-Text Search:** Quickly find any prompt by searching through its name, description, tags, and instruction content.
+- **🗃️ Prompt & Character Library:**
+  - Create, store, and manage your prompts and character/scenario cards in a local SQLite database.
+  - Organize items with names, descriptions, and nested folders (e.g., `creative/story-starters/fantasy`).
+  - Visually browse your library through an intuitive folder structure.
+- **⚡️ Interactive Chat Interface:**
+  - Test any prompt or character card in an interactive chat session.
+  - Dynamically select LLM providers and models for each chat.
+  - Support for template variables `[[variable_name]]` in prompts and cards, filled in before starting a chat.
+  - Markdown rendering for chat messages (excluding within code fences).
+  - Edit your user messages after sending, and the LLM will regenerate responses from that point.
+- **💾 Chat Session Management:**
+  - Save your chat sessions, including the messages, provider/model used, and originating prompt/card.
+  - Browse saved sessions and reload them to continue the conversation or review past interactions.
+  - "Save on Exit" prompt: If you navigate away from an active chat, you'll be asked if you want to save the session.
+- **🌐 Multi-Provider Support:**
+  - Seamlessly switch between different LLM providers and models. `promptbox` dynamically fetches available models.
+  - Supported Providers (configure with your API keys):
+    - Ollama (for local models)
+    - Mistral
+    - Groq
+    - Google (Gemini)
+    - Cerebras
+- **🤖 AI-Powered Prompt Improvement:**
+  - Select a prompt and use an LLM to analyze and suggest improvements to its wording for clarity, effectiveness, and robustness. Apply suggestions with a click.
+- **🔍 Full-Text Search (Prompts):**
+  - Quickly find prompts by searching through their name, description, folder, and instruction content.
 - **📦 Backup & Export:**
-  - Create a timestamped backup of your entire prompt database.
-  - Export all your prompts to a structured `.tar.gz` archive of Markdown files.
-- **💻 Local-First Philosophy:** Your data is yours. The prompt database and configuration are stored locally on your machine in a dedicated `~/.promptbox` directory.
+  - **Database Backup:** Create a timestamped backup of your entire SQLite database file.
+  - **Markdown Export:**
+    - Export all prompts or all character cards to structured `.tar.gz` archives of Markdown files.
+    - Export individual saved chat sessions to Markdown files.
+- **💻 Local-First Philosophy:**
+  - Your data is yours. The prompt database, configuration, and backups are stored locally on your machine in a dedicated `~/.promptbox` directory.
 
 ## Installation
 
@@ -35,17 +53,26 @@ I have wanted an application like this, using my Dropbox to nest prompts in fold
 
     ```bash
     python --version
+    # or
+    python3 --version
     ```
 
-2.  **Clone the repository:**
+2.  **Clone the repository (or download the source code):**
 
     ```bash
-    git clone https://github.com/your-username/promptbox.git
+    git clone https://github.com/your-username/promptbox.git # Replace with the actual repository URL
     cd promptbox
     ```
 
-3.  **Install the application:**
-    This command uses `pip` to install the project and all its dependencies, making the `promptbox` command available in your terminal.
+3.  **Create a virtual environment (recommended):**
+
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    ```
+
+4.  **Install the application and its dependencies:**
+    This command uses `pip` to install the project and all its dependencies from `pyproject.toml`.
     ```bash
     pip install .
     ```
@@ -56,100 +83,119 @@ I have wanted an application like this, using my Dropbox to nest prompts in fold
 
 ## Configuration
 
-Before running the application, you must configure your API keys.
+Before running the application, you need to configure your API keys for the LLM providers you intend to use.
 
-1.  **Create a `.env` file:** In the root of the `promptbox` project directory, create a file named `.env`.
+1.  **Create a `.env` file:** In the root of the `promptbox` project directory (where `pyproject.toml` is located), create a file named `.env`.
 
-2.  **Add your API Keys:** Copy the template below into your `.env` file and add the API keys for the services you wish to use. You only need to provide keys for the providers you have access to.
+2.  **Add your API Keys:** Copy the template below into your `.env` file and add the API keys for the services you wish to use. You only need to provide keys for the providers you have access to or plan to use.
 
     ```dotenv
-    # .env file
+    # .env file for promptbox
 
     # --- Cloud Provider API Keys (only fill in the ones you use) ---
     MISTRAL_API_KEY="your-mistral-api-key"
     GROQ_API_KEY="your-groq-api-key"
-    GOOGLE_API_KEY="your-google-api-key"
+    GOOGLE_API_KEY="your-google-api-key" # For Gemini models
     CEREBRAS_API_KEY="your-cerebras-api-key"
 
     # --- (Optional) Override for local Ollama server address ---
     # The application defaults to http://127.0.0.1:11434 if this is not set.
+    # Make sure your Ollama server is running and accessible at this address.
     # OLLAMA_API_BASE="http://127.0.0.1:11434"
+
+    # --- (Optional) Override for the main database file path ---
+    # Defaults to ~/.promptbox/data/promptbox.db
+    # DATABASE_PATH="/custom/path/to/your/promptbox.db"
     ```
 
-The application will automatically load these keys when it starts.
+The application will automatically load these keys and settings when it starts.
 
 ## Usage
 
-To run the application, simply execute the command in your terminal:
+To run the `promptbox` Streamlit application:
 
-```bash
-promptbox
-```
+1.  Make sure you are in the root directory of the project (where you cloned/downloaded it).
+2.  Ensure your virtual environment is activated (if you created one).
+3.  Run the following command in your terminal:
 
-You will be greeted by the main menu, which is the central hub for all actions.
+    ```bash
+    streamlit run src/promptbox/app.py
+    ```
 
-### Main Menu Navigation
+This will start the Streamlit server, and the application should open in your default web browser.
 
-- **(L)ist & Manage Prompts:** The core of the application. This takes you to a scrollable list of all your saved prompts.
+### Navigating the Application
 
-  - From the list, enter a prompt's ID to view its details and access the **Actions Menu**.
-  - **Actions Menu:**
-    - **(c) Chat:** Start a new interactive chat session using this prompt as the template.
-    - **(e) Edit:** (Not yet implemented) Modify the selected prompt.
-    - **(d) Delete:** Permanently remove the prompt from your database.
-    - **(i) Improve:** Use another LLM to suggest improvements to your prompt's text.
-    - **(b) Back:** Return to the prompt list.
+The application features a sidebar for navigation:
 
-- **(N)ew Prompt:** Launch a step-by-step wizard to create and save a new prompt. You'll be asked for a name, folder, tags, and the system, user, and assistant instructions.
+- **🏠 Home:** Displays a welcome message and general information.
+- **📝 Prompts:** Manage your prompt templates.
+  - View prompts organized by folders.
+  - Create new prompts with system, user, and assistant instructions.
+  - Edit existing prompts.
+  - Use AI to improve prompts.
+  - Start a chat session using a selected prompt.
+  - Search and filter prompts.
+- **🎭 Characters/Scenarios:** Manage reusable character personas or scenario setups.
+  - Similar organization and management features as Prompts.
+  - Start a chat session using a selected character/scenario card.
+- **💬 Chat Sessions:** View your saved chat conversations.
+  - Browse a list of past sessions.
+  - Load a session to continue chatting or review its contents.
+  - Delete old sessions.
+- **💾 Backups:** Manage application data backups.
+  - Backup the entire database.
+  - Export prompts or cards to Markdown archives.
 
-  - For multi-line input (like prompt instructions), use `Ctrl+D` (on Linux/macOS) or `Ctrl+Z` then `Enter` (on Windows) on a new line to finish typing.
+### Chat Interface Features
 
-- **(S)earch Prompts:** Perform a case-insensitive, full-text search across all fields of your prompts.
-
-- **(B)ackup Options:** Create backups of your data.
-
-- **(Q)uit:** Exit the application.
-
-### The Chat Interface
-
-When you start a chat, you first select the provider and model you wish to use. The chat session then begins.
-
-- If your prompt template ends with a `User Instruction`, the AI will generate the first response automatically.
-- Type your message and press `Enter`.
-- Use the following special commands in the input box:
-  - `/save`: Saves the full conversation log to the database, associated with the original prompt.
-  - `/exit`: Ends the chat session and returns you to the previous menu.
+- **Model Selection:** Choose your LLM provider and model before starting or during a chat (by changing model).
+- **Variable Substitution:** If a prompt/card uses `[[variables]]`, you'll be asked to fill them in.
+- **Message Editing:** Click the pencil icon next to one of your messages to edit it. The chat history will truncate to that point, and the LLM will generate a new response.
+- **Saving:**
+  - Explicitly save a session using the "Save Session" button.
+  - If you navigate away or try to change models mid-chat, a dialog will ask if you wish to save your current progress.
+- **Export to Markdown:** Save the current chat (even if not a fully saved session) to a Markdown file.
 
 ## Project Structure
 
-The project is organized into logical components within the `src/promptbox` directory.
+The project is organized within the `src/promptbox` directory:
 
 ```
-src/promptbox/
-├── core/         # Core application logic, like configuration (config.py).
-├── db/           # Database setup, session management, and SQLAlchemy models.
-├── models/       # Pydantic data models for data validation and transfer.
-├── services/     # Business logic (LLM integrations, prompt management, chat).
-├── tui/          # All Text-based User Interface code (menus, components, chat UI).
-└── utils/        # Standalone utility functions (e.g., file handlers).
+promptbox/
+├── src/
+│   ├── promptbox/
+│   │   ├── core/         # Core application logic (e.g., config.py).
+│   │   ├── db/           # Database setup, SQLAlchemy models (models.py), session management (database.py).
+│   │   ├── models/       # Pydantic data models (data_models.py) for validation and data transfer.
+│   │   ├── services/     # Business logic layer (e.g., prompt_service.py, chat_service.py).
+│   │   ├── ui/           # Streamlit UI view modules (e.g., prompt_view.py, chat_view.py).
+│   │   ├── utils/        # Standalone utility functions (e.g., file_handler.py, prompt_parser.py).
+│   │   ├── __init__.py
+│   │   └── app.py        # Main Streamlit application entry point.
+│   ├── __init__.py
+├── README.md             # This file.
+└── pyproject.toml        # Project metadata and dependencies.
 ```
 
 ### Key Technologies
 
-- **[Rich](https://github.com/Textualize/rich):** For all TUI rendering, including panels, tables, styled text, and live updates.
+- **[Streamlit](https://streamlit.io/):** For building the interactive web-based user interface.
 - **[SQLAlchemy](https://www.sqlalchemy.org/):** For the database Object-Relational Mapper (ORM), managing the SQLite database.
-- **[Langchain](https://github.com/langchain-ai/langchain):** For abstracting and simplifying interactions with the various LLM providers.
+- **[Pydantic](https://docs.pydantic.dev/):** For data validation and settings management.
+- **[Langchain](https://github.com/langchain-ai/langchain):** For abstracting and simplifying interactions with various LLM providers.
+- **Python-dotenv:** For managing API keys and environment variables.
 
 ## Contributing
 
-Contributions are welcome! If you have a suggestion for an improvement or have found a bug, please feel free to open an issue or submit a pull request.
+Contributions are welcome! If you have suggestions for improvements, new features, or have found a bug, please feel free to open an issue or submit a pull request to the project repository.
 
 1.  Fork the repository.
-2.  Create a new feature branch (`git checkout -b feature/your-amazing-feature`).
-3.  Commit your changes (`git commit -m 'Add some amazing feature'`).
-4.  Push to the branch (`git push origin feature/your-amazing-feature`).
+2.  Create a new feature branch (e.g., `git checkout -b feature/awesome-new-feature`).
+3.  Make your changes and commit them (`git commit -m 'Add awesome new feature'`).
+4.  Push to the branch (`git push origin feature/awesome-new-feature`).
 5.  Open a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See the `LICENSE` file (if included in the repository) for details.

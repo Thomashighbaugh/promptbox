@@ -2,7 +2,6 @@
 Contains utility functions for creating compressed archives.
 """
 
-import os
 import tarfile
 from pathlib import Path
 from typing import Union
@@ -19,7 +18,7 @@ def create_tar_gz_archive(
         source_dir (Union[str, Path]): The path to the directory to be archived.
         archive_path (Union[str, Path]): The full path for the output .tar.gz file.
                                          The parent directory will be created if it doesn't exist.
-        arcname (str, optional): The name for the root directory inside the archive. 
+        arcname (str, optional): The name for the root directory inside the archive.
                                  If None, it defaults to the basename of the source_dir.
 
     Returns:
@@ -35,56 +34,15 @@ def create_tar_gz_archive(
 
     # Ensure the destination directory exists
     archive_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Determine the name of the root folder within the archive
     archive_root_name = arcname if arcname is not None else source_dir.name
-    
+
     try:
-        print(f"Creating archive: {archive_path}")
         with tarfile.open(archive_path, "w:gz") as tar:
             tar.add(source_dir, arcname=archive_root_name)
-        
-        print(f"Successfully created archive at {archive_path}")
+
         return str(archive_path)
     except Exception as e:
         print(f"Failed to create archive: {e}")
         return None
-
-# Example usage for standalone testing
-if __name__ == '__main__':
-    import tempfile
-    import shutil
-
-    # Create a temporary directory structure to archive
-    with tempfile.TemporaryDirectory() as temp_source_dir:
-        print(f"Created temporary source directory: {temp_source_dir}")
-        
-        # Create some files and subdirectories
-        (Path(temp_source_dir) / "file1.txt").write_text("This is file 1.")
-        (Path(temp_source_dir) / "subdir").mkdir()
-        (Path(temp_source_dir) / "subdir" / "file2.txt").write_text("This is file 2 in a subdirectory.")
-
-        # Define where the output archive will go
-        output_dir = Path(tempfile.gettempdir()) / "promptbox_archiver_test"
-        output_dir.mkdir(exist_ok=True)
-        archive_file_path = output_dir / "test_archive.tar.gz"
-
-        print(f"\n--- Testing Archive Creation ---")
-        created_path = create_tar_gz_archive(temp_source_dir, archive_file_path, arcname="my_backup")
-
-        if created_path:
-            print(f"Archive created at: {created_path}")
-            assert Path(created_path).exists()
-
-            # Verify the contents of the archive
-            print("\n--- Verifying Archive Contents ---")
-            with tarfile.open(created_path, "r:gz") as tar:
-                # We expect paths like 'my_backup/file1.txt'
-                for member in tar.getmembers():
-                    print(f"- {member.name}")
-            
-            # Clean up the created archive and its directory
-            shutil.rmtree(output_dir)
-            print("\nTest output directory cleaned up.")
-        else:
-            print("Test failed: Archive creation returned None.")

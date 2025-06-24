@@ -18,10 +18,8 @@ from dotenv import load_dotenv
 # allows the user to manage API keys in their project folder.
 load_dotenv()
 
-# Use the user's home directory to create a stable, hidden folder for
-# the application's data files. This is the standard practice.
-APP_HOME = Path.home() / ".promptbox"
-
+# Renamed the module-level constant to avoid confusion with the instance attribute.
+_APP_HOME_DIR_NAME = ".promptbox"
 
 class Settings:
     """
@@ -29,6 +27,10 @@ class Settings:
     Attributes are loaded from environment variables.
     """
     def __init__(self):
+        # --- Application's root directory in user's home ---
+        # This is now an instance attribute, directly accessible via settings.APP_HOME
+        self.APP_HOME: Path = Path.home() / _APP_HOME_DIR_NAME
+
         # --- API Keys (loaded by load_dotenv() from the CWD) ---
         self.mistral_api_key: str | None = os.getenv("MISTRAL_API_KEY")
         self.groq_api_key: str | None = os.getenv("GROQ_API_KEY")
@@ -37,17 +39,24 @@ class Settings:
         self.novita_api_key: str | None = os.getenv("NOVITA_API_KEY")
 
         # --- API Endpoints ---
-        # FINAL ATTEMPT: Using the direct IPv4 loopback address to bypass any
-        # potential localhost resolution or proxy issues.
-        self.ollama_api_base: str = "http://127.0.0.1:11434"
+        self.ollama_api_base: str = os.getenv("OLLAMA_API_BASE") or "http://127.0.0.1:11434"
 
-        # --- Default File Paths (relative to the app's home directory) ---
-        self.data_dir: Path = APP_HOME / "data"
-        self.backup_dir: Path = APP_HOME / "backups"
+        # --- Default File Paths (now relative to self.APP_HOME) ---
+        self.data_dir: Path = self.APP_HOME / "data"
+        self.backup_dir: Path = self.APP_HOME / "backups"
 
         # --- Overridable Paths ---
-        # The database now lives in a predictable location: ~/.promptbox/data/promptbox.db
-        self.database_path: Path = Path(os.getenv("DATABASE_PATH") or self.data_dir / "promptbox.db")
+        # The database now lives in a predictable location.
+        # Ensure DATABASE_PATH from .env is resolved correctly if it's an absolute path.
+        db_path_env = os.getenv("DATABASE_PATH")
+        if db_path_env and Path(db_path_env).is_absolute():
+            self.database_path: Path = Path(db_path_env)
+        elif db_path_env: # Relative path, assumed relative to CWD or requires specific handling
+             # For simplicity, if DATABASE_PATH is relative, let's make it relative to APP_HOME
+            self.database_path: Path = self.APP_HOME / db_path_env
+        else: # Default path
+            self.database_path: Path = self.data_dir / "promptbox.db"
+
 
         # Ensure data directories exist in the user's home folder
         self._create_directories()
@@ -56,9 +65,13 @@ class Settings:
         """
         Creates the necessary data and backup directories if they don't exist.
         """
+        # Ensure APP_HOME itself is created first as it's the parent for data_dir
+        self.APP_HOME.mkdir(exist_ok=True, parents=True)
         self.data_dir.mkdir(exist_ok=True, parents=True)
         self.backup_dir.mkdir(exist_ok=True, parents=True)
-        # The database_path's parent is self.data_dir, which is already created.
+        # Ensure the parent directory for the database_path also exists
+        self.database_path.parent.mkdir(exist_ok=True, parents=True)
+
 
     def get_api_key(self, provider: str) -> str | None:
         """A helper method to get an API key by its provider name."""
