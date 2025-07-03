@@ -30,7 +30,7 @@ def get_cached_func_name_md(func: Any) -> str:
     """Get markdown representation of the function name."""
     if hasattr(func, "__name__"):
         return f"`{func.__name__}()`"
-    elif hasattr(type(func), "__name__"):
+    if hasattr(type(func), "__name__"):
         return f"`{type(func).__name__}`"
     return f"`{type(func)}`"
 
@@ -53,7 +53,7 @@ class UnhashableParamError(StreamlitAPIException):
         arg_name: str | None,
         arg_value: Any,
         orig_exc: BaseException,
-    ):
+    ) -> None:
         msg = self._create_message(cache_type, func, arg_name, arg_value)
         super().__init__(msg)
         self.with_traceback(orig_exc.__traceback__)
@@ -99,7 +99,7 @@ class CacheReplayClosureError(StreamlitAPIException):
         self,
         cache_type: CacheType,
         cached_func: FunctionType,
-    ):
+    ) -> None:
         func_name = get_cached_func_name_md(cached_func)
         decorator_name = get_decorator_api_name(cache_type)
 
@@ -121,7 +121,7 @@ How to fix this:
 
 
 class UnserializableReturnValueError(MarkdownFormattedException):
-    def __init__(self, func: FunctionType, return_value: FunctionType):
+    def __init__(self, func: FunctionType, return_value: FunctionType) -> None:
         MarkdownFormattedException.__init__(
             self,
             f"""

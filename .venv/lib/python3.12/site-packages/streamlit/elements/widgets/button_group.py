@@ -107,11 +107,7 @@ class _MultiSelectSerde(Generic[T]):
         indices = check_and_convert_to_indices(self.options, value)
         return indices if indices is not None else []
 
-    def deserialize(
-        self,
-        ui_value: list[int] | None,
-        widget_id: str = "",
-    ) -> list[T]:
+    def deserialize(self, ui_value: list[int] | None) -> list[T]:
         current_value: list[int] = (
             ui_value if ui_value is not None else self.default_value
         )
@@ -145,8 +141,8 @@ class _SingleSelectSerde(Generic[T]):
         _value = [value] if value is not None else []
         return self.multiselect_serde.serialize(_value)
 
-    def deserialize(self, ui_value: list[int] | None, widget_id: str = "") -> T | None:
-        deserialized = self.multiselect_serde.deserialize(ui_value, widget_id)
+    def deserialize(self, ui_value: list[int] | None) -> T | None:
+        deserialized = self.multiselect_serde.deserialize(ui_value)
 
         if len(deserialized) == 0:
             return None
@@ -169,7 +165,7 @@ class ButtonGroupSerde(Generic[T]):
         options: Sequence[T],
         default_values: list[int],
         type: Literal["single", "multi"],
-    ):
+    ) -> None:
         self.options = options
         self.default_values = default_values
         self.type = type
@@ -182,10 +178,8 @@ class ButtonGroupSerde(Generic[T]):
     def serialize(self, value: T | list[T] | None) -> list[int]:
         return self.serde.serialize(cast("Any", value))
 
-    def deserialize(
-        self, ui_value: list[int] | None, widget_id: str = ""
-    ) -> list[T] | T | None:
-        return self.serde.deserialize(ui_value, widget_id)
+    def deserialize(self, ui_value: list[int] | None) -> list[T] | T | None:
+        return self.serde.deserialize(ui_value)
 
 
 def get_mapped_options(
@@ -256,7 +250,7 @@ def _build_proto(
     return proto
 
 
-def _maybe_raise_selection_mode_warning(selection_mode: SelectionMode):
+def _maybe_raise_selection_mode_warning(selection_mode: SelectionMode) -> None:
     """Check if the selection_mode value is valid or raise exception otherwise."""
     if selection_mode not in ["single", "multi"]:
         raise StreamlitAPIException(
@@ -556,7 +550,7 @@ class ButtonGroupMixin:
         label_visibility: "visible", "hidden", or "collapsed"
             The visibility of the label. The default is ``"visible"``. If this
             is ``"hidden"``, Streamlit displays an empty spacer instead of the
-            label, which can help keep the widget alligned with other widgets.
+            label, which can help keep the widget aligned with other widgets.
             If this is ``"collapsed"``, Streamlit displays no label or spacer.
 
         Returns
@@ -765,7 +759,7 @@ class ButtonGroupMixin:
         label_visibility: "visible", "hidden", or "collapsed"
             The visibility of the label. The default is ``"visible"``. If this
             is ``"hidden"``, Streamlit displays an empty spacer instead of the
-            label, which can help keep the widget alligned with other widgets.
+            label, which can help keep the widget aligned with other widgets.
             If this is ``"collapsed"``, Streamlit displays no label or spacer.
 
         Returns
@@ -990,6 +984,7 @@ class ButtonGroupMixin:
             widget_name,
             user_key=key,
             form_id=form_id,
+            dg=self.dg,
             options=formatted_options,
             default=default,
             click_mode=parsed_selection_mode,

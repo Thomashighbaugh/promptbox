@@ -65,7 +65,7 @@ TTLCACHE_TIMER = time.monotonic
 class Cache:
     """Function cache interface. Caches persist across script runs."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._value_locks: dict[str, threading.Lock] = defaultdict(threading.Lock)
         self._value_locks_lock = threading.Lock()
 
@@ -100,7 +100,7 @@ class Cache:
         with self._value_locks_lock:
             return self._value_locks[value_key]
 
-    def clear(self, key: str | None = None):
+    def clear(self, key: str | None = None) -> None:
         """Clear values from this cache.
         If no argument is passed, all items are cleared from the cache.
         A key can be passed to clear that key from the cache only.
@@ -130,7 +130,7 @@ class CachedFuncInfo:
         func: FunctionType,
         show_spinner: bool | str,
         hash_funcs: HashFuncsDict | None,
-    ):
+    ) -> None:
         self.func = func
         self.show_spinner = show_spinner
         self.hash_funcs = hash_funcs
@@ -167,17 +167,17 @@ class BoundCachedFunc:
     decorated function is a class method.
     """
 
-    def __init__(self, cached_func: CachedFunc, instance: Any):
+    def __init__(self, cached_func: CachedFunc, instance: Any) -> None:
         self._cached_func = cached_func
         self._instance = instance
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self._cached_func(self._instance, *args, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<BoundCachedFunc: {self._cached_func._info.func} of {self._instance}>"
 
-    def clear(self, *args, **kwargs):
+    def clear(self, *args: Any, **kwargs: Any) -> None:
         if args or kwargs:
             # The instance is required as first parameter to allow
             # args to be correctly resolved to the parameter names:
@@ -189,21 +189,21 @@ class BoundCachedFunc:
 
 
 class CachedFunc:
-    def __init__(self, info: CachedFuncInfo):
+    def __init__(self, info: CachedFuncInfo) -> None:
         self._info = info
         self._function_key = _make_function_key(info.cache_type, info.func)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<CachedFunc: {self._info.func}>"
 
-    def __get__(self, instance, owner=None):
+    def __get__(self, instance: Any, owner: Any | None = None) -> Any:
         """CachedFunc implements descriptor protocol to support cache methods."""
         if instance is None:
             return self
 
         return functools.update_wrapper(BoundCachedFunc(self, instance), self)
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """The wrapper. We'll only call our underlying function on a cache miss."""
 
         spinner_message: str | None = None
@@ -346,7 +346,7 @@ class CachedFunc:
                     return_value=computed_value, func=self._info.func
                 )
 
-    def clear(self, *args, **kwargs):
+    def clear(self, *args: Any, **kwargs: Any) -> None:
         """Clear the cached function's associated cache.
 
         If no arguments are passed, Streamlit will clear all values cached for
@@ -473,8 +473,9 @@ def _make_function_key(cache_type: CacheType, func: FunctionType) -> str:
 
     # Include the function's __module__ and __qualname__ strings in the hash.
     # This means that two identical functions in different modules
-    # will not share a hash; it also means that two identical *nested*
-    # functions in the same module will not share a hash.
+    # will not share a hash.
+    # It also means that two identical *nested* functions in the same module
+    # *will* share a hash (see https://github.com/streamlit/streamlit/issues/11157).
     update_hash(
         (func.__module__, func.__qualname__),
         hasher=func_hasher,

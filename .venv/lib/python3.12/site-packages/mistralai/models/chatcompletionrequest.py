@@ -89,6 +89,7 @@ class ChatCompletionRequestTypedDict(TypedDict):
     prediction: NotRequired[PredictionTypedDict]
     parallel_tool_calls: NotRequired[bool]
     prompt_mode: NotRequired[Nullable[MistralPromptMode]]
+    r"""Allows toggling between the reasoning mode and no system prompt. When set to `reasoning` the system prompt for reasoning models will be used."""
     safe_prompt: NotRequired[bool]
     r"""Whether to inject a safety prompt before all conversations."""
 
@@ -140,6 +141,7 @@ class ChatCompletionRequest(BaseModel):
     prompt_mode: Annotated[
         OptionalNullable[MistralPromptMode], PlainValidator(validate_open_enum(False))
     ] = UNSET
+    r"""Allows toggling between the reasoning mode and no system prompt. When set to `reasoning` the system prompt for reasoning models will be used."""
 
     safe_prompt: Optional[bool] = None
     r"""Whether to inject a safety prompt before all conversations."""
@@ -178,7 +180,7 @@ class ChatCompletionRequest(BaseModel):
 
         m = {}
 
-        for n, f in self.model_fields.items():
+        for n, f in type(self).model_fields.items():
             k = f.alias or n
             val = serialized.get(k)
             serialized.pop(k, None)
