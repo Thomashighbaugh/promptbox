@@ -1,0 +1,2078 @@
+# MISSION: Comprehensive Codebase Refactoring
+
+## PHASE 1: ANALYSIS & REFACTORING PLAN
+
+### 1. CONTEXT & PERSONA
+
+You are an expert AI Software Architect and Refactoring Specialist. Your expertise lies in analyzing existing codebases, identifying areas for improvement, and executing flawless refactoring. You are meticulous, security-conscious, and prioritize performance, maintainability, and readability.
+
+### 2. OBJECTIVE
+
+Your primary mission is to analyze the provided codebase, user-defined goals, and reported errors. Based on this analysis, you will produce a comprehensive, step-by-step refactoring plan. **You will NOT write any code in this phase.** You will only produce the plan.
+
+### 3. USER-PROVIDED INPUTS
+
+**A. User Goals & Reported Errors:**
+
+```
+- **Chat Interface State** - if the user navigates away from the chat, then selects a prompt or character/scenario card to use then a message dialogue asking if they would like to save their last session should appear. If they select "yes" then the chat should be saved to a separate "chats" database with metadata indicating the Provider/Model being used, the original prompt as well as the time/date and the user should be able to access it through a "Sessions" page from the sidebar that opens a "Sessions" page from which they can select a chat to load as well as delete old chats.
+- **Chat Interface** - The chat interface should be more responsive and visually appealing. It should support markdown formatting for messages (but not within markdown code fences), allow users to edit their messages which then prompts a new response from the LLM, and not loose its current functionality such as the saving of the session to a markdown file. There should additionally an "exit without saving" button as well in the prompt interface. 
+- **Prompt Tags Removal** - currently attempting to save the "tags" for a prompt is lost, which is fine as the inclusion of folders makes such a feature unnecessary as it is. So remove this element from the prompt interface altogether. 
+- **Prompt Database Display** - The prompt database content should be displayed in a more user-friendly and appealing manner. This includes better organization, the full-text search functionality version 0.1.0 had, and the ability to filter prompts by folders such as to display only items from within that folder.
+- **Folder Nesting** - Prompts should be able to be within folders that are themselves within folders, such as `notes/note-creation/` or `prompt-engineering/image-prompts/`. This should be reflected in the prompt database display and the ability to filter by folder.
+- **README Updates** - README should be rewritten to reflect the most recent sets of changes and how the user can install and operate this application locally. 
+```
+
+**B. Codebase:**
+
+```
+(see below at the "Codebase" first level heading )
+```
+
+### 4. YOUR TASK: Generate the Refactoring Plan
+
+Analyze all provided information and generate a detailed refactoring plan. The plan must be structured in Markdown as follows:
+
+---
+
+**Refactoring Plan & Analysis**
+
+**1. Overall Strategy:**
+
+- A high-level summary of the proposed changes.
+- A description of how this strategy directly addresses the user's goals and reported errors.
+
+**2. Detailed File-by-File Plan:**
+
+- For each file that requires changes, create a subsection.
+- **File:** `path/to/your/file.ext`
+  - **Diagnosis:** Briefly explain the current issues in this file (e.g., "Inefficient algorithm," "Poor error handling," "Code duplication," "Hard-to-read logic").
+  - **Proposed Changes:** Provide a clear, bulleted list of specific changes to be made (e.g., "Replace the O(n^2) loop with a dictionary-based O(n) lookup," "Extract the database connection logic into a separate utility function," "Rename variable `x` to `user_profile_data` for clarity," "Add a try-catch block around the API call").
+
+**3. Proactive Improvements:**
+
+- **Error & Bug Prevention:** Detail any changes that will fix potential or elusive bugs, improve error handling, or add validation to make the code more robust.
+- **Performance Optimization:** Describe any proposed changes to improve execution speed or reduce memory/resource consumption. Justify why the change will be more performant.
+- **Readability & Maintainability:** Outline changes that will improve the human readability of the code. This includes better variable naming, adding crucial comments, removing dead code, and applying design patterns like DRY (Don't Repeat Yourself).
+
+**4. Potential Risks & Breaking Changes:**
+
+- List any potential risks associated with the refactoring.
+- Clearly state if any proposed changes will alter public APIs, function signatures, or expected behavior in a way that would be considered a breaking change for consumers of this code.
+
+**5. Confirmation:**
+
+- Conclude your plan with the following exact sentence: "If you approve this plan, please respond with 'PROCEED' to begin the refactoring process."
+
+---
+
+## PHASE 2: CODE REFACTORING (EXECUTION)
+
+**TRIGGER:** You will only begin this phase after I review the plan and respond with the exact keyword: `PROCEED`.
+
+**YOUR TASK:** Upon receiving the `PROCEED` command, you will:
+
+1.  Execute the approved refactoring plan meticulously.
+2.  Provide the complete, refactored code for **every modified file**. Do not provide snippets; provide the full file content.
+3.  Use the following format for each file:
+
+`path/to/refactored/file.ext`
+
+```[language]
+// The full, refactored code for this file goes here.
+// All proposed changes from the plan should be implemented.
+```
+
+4.  After presenting all the refactored files, provide a brief **Final Summary** confirming that all tasks from the approved plan have been completed.
+
+````
+
+# Codebase 
+
+Below is the project codebase that you will analyze and refactor according to the user's goals and reported errors.
+
+
+```
+promptbox/
+├── src/
+│       ├── core/
+│       │   ├── __init__.py
+│       │   └── config.py
+│       ├── db/
+│       │   ├── __init__.py
+│       │   ├── database.py
+│       │   └── models.py
+│       ├── models/
+│       │   ├── __init__.py
+│       │   ├── data_models.py
+│       │   └── prompt.py
+│       ├── services/
+│       │   ├── __init__.py
+│       │   ├── backup_service.py
+│       │   ├── character_service.py
+│       │   ├── chat_service.py
+│       │   ├── llm_service.py
+│       │   └── prompt_service.py
+│       ├── ui/
+│       │   ├── __init__.py
+│       │   ├── backup_view.py
+│       │   ├── character_view.py
+│       │   ├── chat_view.py
+│       │   └── prompt_view.py
+│       ├── utils/
+│       │   ├── __init__.py
+│       │   ├── archiver.py
+│       │   ├── file_handler.py
+│       │   └── prompt_parser.py
+│       ├── __init__.py
+│       ├── app.py
+│       └── main.py
+├── README.md
+└── pyproject.toml
+```
+
+# Project Files
+
+## File: `src/promptbox/core/config.py`
+
+```python
+"""
+Handles loading application-wide configuration settings.
+
+This version uses two locations:
+1.  The Current Working Directory (CWD) for user-provided files like .env.
+    This allows the user to place their API keys in their project folder.
+2.  A dedicated folder in the user's home directory (~/.promptbox) for stable
+    application data like the database. This ensures the database is always
+    found, regardless of where the command is run.
+"""
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# By default, python-dotenv searches for the .env file in the current working
+# directory. This is the correct behavior for a command-line tool, as it
+# allows the user to manage API keys in their project folder.
+load_dotenv()
+
+# Use the user's home directory to create a stable, hidden folder for
+# the application's data files. This is the standard practice.
+APP_HOME = Path.home() / ".promptbox"
+
+
+class Settings:
+    """
+    A singleton-like class to hold all application settings.
+    Attributes are loaded from environment variables.
+    """
+    def __init__(self):
+        # --- API Keys (loaded by load_dotenv() from the CWD) ---
+        self.mistral_api_key: str | None = os.getenv("MISTRAL_API_KEY")
+        self.groq_api_key: str | None = os.getenv("GROQ_API_KEY")
+        self.google_api_key: str | None = os.getenv("GOOGLE_API_KEY")
+        self.cerebras_api_key: str | None = os.getenv("CEREBRAS_API_KEY")
+        self.novita_api_key: str | None = os.getenv("NOVITA_API_KEY")
+
+        # --- API Endpoints ---
+        # FINAL ATTEMPT: Using the direct IPv4 loopback address to bypass any
+        # potential localhost resolution or proxy issues.
+        self.ollama_api_base: str = "http://127.0.0.1:11434"
+
+        # --- Default File Paths (relative to the app's home directory) ---
+        self.data_dir: Path = APP_HOME / "data"
+        self.backup_dir: Path = APP_HOME / "backups"
+
+        # --- Overridable Paths ---
+        # The database now lives in a predictable location: ~/.promptbox/data/promptbox.db
+        self.database_path: Path = Path(os.getenv("DATABASE_PATH") or self.data_dir / "promptbox.db")
+
+        # Ensure data directories exist in the user's home folder
+        self._create_directories()
+
+    def _create_directories(self):
+        """
+        Creates the necessary data and backup directories if they don't exist.
+        """
+        self.data_dir.mkdir(exist_ok=True, parents=True)
+        self.backup_dir.mkdir(exist_ok=True, parents=True)
+        # The database_path's parent is self.data_dir, which is already created.
+
+    def get_api_key(self, provider: str) -> str | None:
+        """A helper method to get an API key by its provider name."""
+        return getattr(self, f"{provider.lower()}_api_key", None)
+
+# Instantiate a single settings object for the entire application to use.
+settings = Settings()
+
+```
+
+## File: `src/promptbox/db/database.py`
+
+```python
+"""
+Manages the database connection and session creation.
+"""
+import streamlit as st
+from contextlib import contextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+
+from promptbox.core.config import settings
+from promptbox.db.models import Base
+
+# Use a module-level variable to hold the engine once initialized.
+_engine = None
+SessionLocal = None
+
+def init_engine():
+    """Initializes the database engine. Returns True on success, False on failure."""
+    global _engine, SessionLocal
+    if _engine is not None:
+        return True
+    
+    try:
+        _engine = create_engine(
+            f"sqlite:///{settings.database_path}",
+            connect_args={"check_same_thread": False},
+            echo=False
+        )
+        # Verify connection
+        _engine.connect().close()
+
+        SessionLocal = sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=_engine
+        )
+        return True
+    except Exception as e:
+        st.error(f"Fatal Error: Could not create database engine at {settings.database_path}.")
+        st.error(f"Details: {e}")
+        st.info("Please ensure the directory is writable and the path is correct.")
+        return False
+
+
+def create_db_and_tables():
+    """
+    Creates the database file and all tables defined in the Base metadata.
+    """
+    if not _engine:
+        st.error("Database engine not initialized. Cannot create tables.")
+        return
+        
+    try:
+        Base.metadata.create_all(bind=_engine)
+    except Exception as e:
+        st.error(f"An error occurred during database and table creation: {e}")
+
+@contextmanager
+def get_db() -> Session:
+    """
+    Provides a database session within a context manager.
+    """
+    if not SessionLocal:
+        raise RuntimeError("Database session not initialized. Call init_engine() first.")
+        
+    db = SessionLocal()
+    try:
+        yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+```
+
+## File: `src/promptbox/db/models.py`
+
+```python
+"""
+Defines the SQLAlchemy ORM models for the application's database.
+"""
+import datetime
+from sqlalchemy import (
+    ForeignKey,
+    String,
+    DateTime,
+    Text,
+    func
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+class Base(DeclarativeBase):
+    pass
+
+class Prompt(Base):
+    __tablename__ = "prompts"
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    system_instruction: Mapped[str] = mapped_column(Text, nullable=True)
+    user_instruction: Mapped[str] = mapped_column(Text, nullable=True)
+    assistant_instruction: Mapped[str] = mapped_column(Text, nullable=True)
+    tags: Mapped[str] = mapped_column(String(255), nullable=True)
+    folder: Mapped[str] = mapped_column(String(255), nullable=False, default="general")
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    chat_logs: Mapped[list["ChatLog"]] = relationship(back_populates="prompt", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Prompt(id={self.id}, name='{self.name}', folder='{self.folder}')>"
+
+class ChatLog(Base):
+    __tablename__ = "chat_logs"
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    prompt_id: Mapped[int] = mapped_column(ForeignKey("prompts.id"), nullable=False)
+    log_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now())
+    prompt: Mapped["Prompt"] = relationship(back_populates="chat_logs")
+
+    def __repr__(self):
+        return f"<ChatLog(id={self.id}, log_name='{self.log_name}', prompt_id={self.prompt_id})>"
+
+class CharacterCard(Base):
+    __tablename__ = "character_cards"
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    folder: Mapped[str] = mapped_column(String(255), nullable=False, default="general")
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    type: Mapped[str] = mapped_column(String(50), nullable=False, default="character") # "character" or "scenario"
+    instructions: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<CharacterCard(id={self.id}, name='{self.name}', type='{self.type}')>"
+
+```
+
+## File: `src/promptbox/models/data_models.py`
+
+```python
+"""
+Defines the Pydantic data models for the application.
+
+These models are used for data validation, serialization, and ensuring
+a consistent data structure is passed between different layers of the
+application (e.g., from the service layer to the UI). They are distinct
+from the SQLAlchemy ORM models, which are tied to the database schema.
+"""
+
+from datetime import datetime
+from pydantic import BaseModel, Field, model_validator, ConfigDict
+from typing import Literal
+
+class PromptData(BaseModel):
+    """
+    Pydantic model representing a prompt. Used for data validation and transfer.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    name: str = Field(..., min_length=1, description="The unique name of the prompt.")
+    folder: str = Field(default="general", min_length=1, description="The folder to categorize the prompt.")
+    description: str | None = None
+    tags: list[str] = Field(default_factory=list, description="A list of tags for searching.")
+    system_instruction: str | None = None
+    user_instruction: str | None = None
+    assistant_instruction: str | None = None
+
+    @model_validator(mode='after')
+    def check_at_least_one_instruction(self) -> 'PromptData':
+        if not any([
+            self.system_instruction,
+            self.user_instruction,
+            self.assistant_instruction,
+        ]):
+            raise ValueError("At least one instruction (system, user, or assistant) must be provided.")
+        return self
+
+class CharacterCardData(BaseModel):
+    """
+    Pydantic model representing a character or scenario card.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    name: str = Field(..., min_length=1, description="The unique name of the character/scenario.")
+    folder: str = Field(default="general", min_length=1, description="The folder to categorize the card.")
+    description: str | None = None
+    type: Literal["character", "scenario"] = Field(default="character", description="The type of the card.")
+    instructions: str = Field(..., min_length=1, description="The instructions for the AI.")
+
+```
+
+## File: `src/promptbox/models/prompt.py`
+
+```python
+"""
+Defines the Pydantic data models for the application.
+
+These models are used for data validation, serialization, and ensuring
+a consistent data structure is passed between different layers of the
+application (e.g., from the service layer to the TUI). They are distinct
+from the SQLAlchemy ORM models, which are tied to the database schema.
+"""
+
+from datetime import datetime
+from pydantic import BaseModel, Field, model_validator, ConfigDict
+
+class PromptData(BaseModel):
+    """
+    Pydantic model representing a prompt. Used for data validation and transfer.
+    """
+    # Configuration to allow creating this model from ORM objects (e.g., SQLAlchemy models)
+    model_config = ConfigDict(from_attributes=True)
+
+    # Optional fields that are present on existing prompts
+    id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    # Core required fields
+    name: str = Field(..., min_length=1, description="The unique name of the prompt.")
+    folder: str = Field(default="general", min_length=1, description="The folder to categorize the prompt.")
+    
+    # Optional metadata
+    description: str | None = None
+    tags: list[str] = Field(default_factory=list, description="A list of tags for searching.")
+
+    # Prompt content. At least one of these must be provided.
+    system_instruction: str | None = None
+    user_instruction: str | None = None
+    assistant_instruction: str | None = None
+    
+    @model_validator(mode='after')
+    def check_at_least_one_instruction(self) -> 'PromptData':
+        """
+        Validates that at least one of the instruction fields is not None.
+        """
+        if not any([
+            self.system_instruction,
+            self.user_instruction,
+            self.assistant_instruction,
+        ]):
+            raise ValueError("At least one instruction (system, user, or assistant) must be provided.")
+        return self
+
+if __name__ == '__main__':
+    # Example usage and demonstration of the Pydantic model
+    
+    print("--- Testing valid prompt data ---")
+    try:
+        valid_data = {
+            "name": "My Test Prompt",
+            "description": "A prompt for testing.",
+            "user_instruction": "Please act as a pirate.",
+            "tags": ["testing", "fun"],
+            "folder": "experiments"
+        }
+        prompt_model = PromptData(**valid_data)
+        print("Validation successful!")
+        print(prompt_model.model_dump_json(indent=2))
+    except ValueError as e:
+        print(f"Validation failed unexpectedly: {e}")
+
+    print("\n--- Testing invalid prompt data (no instructions) ---")
+    try:
+        invalid_data = {
+            "name": "Invalid Prompt",
+            "description": "This should fail validation."
+        }
+        PromptData(**invalid_data)
+    except ValueError as e:
+        print(f"Validation failed as expected: {e}")
+
+    print("\n--- Creating model from a mock ORM object ---")
+    class MockOrmPrompt:
+        """A fake SQLAlchemy model object to test `from_attributes`."""
+        id = 1
+        name = "ORM Prompt"
+        description = "Loaded from a DB-like object"
+        folder = "orm_tests"
+        system_instruction = "System info"
+        user_instruction = "User info"
+        assistant_instruction = None
+        # In the DB, tags are a string; we'll handle this conversion in the service layer
+        tags = "orm, test" 
+        created_at = datetime.now()
+        updated_at = datetime.now()
+
+    mock_orm_obj = MockOrmPrompt()
+    # Note: A real implementation would need to convert the 'tags' string to a list
+    # before creating the Pydantic model. This is just a demonstration.
+    # We will pretend the service layer did this:
+    mock_orm_dict = {
+        "id": mock_orm_obj.id,
+        "name": mock_orm_obj.name,
+        "description": mock_orm_obj.description,
+        "folder": mock_orm_obj.folder,
+        "system_instruction": mock_orm_obj.system_instruction,
+        "user_instruction": mock_orm_obj.user_instruction,
+        "tags": mock_orm_obj.tags.split(", "),
+        "created_at": mock_orm_obj.created_at,
+        "updated_at": mock_orm_obj.updated_at,
+    }
+    orm_based_prompt = PromptData(**mock_orm_dict)
+    
+    print("Successfully created Pydantic model from ORM-like data:")
+    print(orm_based_prompt.model_dump_json(indent=2))
+
+
+```
+
+## File: `src/promptbox/services/backup_service.py`
+
+```python
+import os
+import shutil
+import tempfile
+from datetime import datetime
+from typing import Tuple
+
+from promptbox.core.config import settings
+from promptbox.services.prompt_service import PromptService
+from promptbox.services.character_service import CharacterService
+from promptbox.models.data_models import PromptData, CharacterCardData
+from promptbox.utils.archiver import create_tar_gz_archive
+
+class BackupService:
+    def __init__(self, prompt_service: PromptService, character_service: CharacterService):
+        self.prompt_service = prompt_service
+        self.character_service = character_service
+
+    def backup_database_file(self) -> Tuple[bool, str]:
+        db_path = settings.database_path
+        if not db_path.exists():
+            return False, "Database file not found."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"promptbox_db_backup_{timestamp}.db"
+        backup_filepath = settings.backup_dir / backup_filename
+
+        try:
+            shutil.copy(db_path, backup_filepath)
+            return True, f"Successfully created database backup: {backup_filepath.name}"
+        except Exception as e:
+            return False, f"Failed to create database backup: {e}"
+
+    def backup_prompts_to_archive(self) -> Tuple[bool, str]:
+        all_prompts = self.prompt_service.get_all_prompts()
+        if not all_prompts:
+            return False, "No prompts found to back up."
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for prompt in all_prompts:
+                self._create_markdown_file_for_prompt(prompt, temp_dir)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            archive_filename = f"promptbox_prompts_markdown_backup_{timestamp}.tar.gz"
+            archive_filepath = settings.backup_dir / archive_filename
+            
+            archive_name_in_tar = f"promptbox_prompts_backup_{timestamp}"
+            
+            try:
+                result_path = create_tar_gz_archive(temp_dir, archive_filepath, arcname=archive_name_in_tar)
+                if result_path:
+                    return True, f"Successfully created prompt archive: {archive_filepath.name}"
+                else:
+                    return False, "Failed to create the archive file."
+            except Exception as e:
+                return False, f"Failed to create prompt archive: {e}"
+
+    def backup_cards_to_archive(self) -> Tuple[bool, str]:
+        all_cards = self.character_service.get_all_cards()
+        if not all_cards:
+            return False, "No character/scenario cards found to back up."
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for card in all_cards:
+                self._create_markdown_file_for_card(card, temp_dir)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            archive_filename = f"promptbox_cards_markdown_backup_{timestamp}.tar.gz"
+            archive_filepath = settings.backup_dir / archive_filename
+
+            archive_name_in_tar = f"promptbox_cards_backup_{timestamp}"
+
+            try:
+                result_path = create_tar_gz_archive(temp_dir, archive_filepath, arcname=archive_name_in_tar)
+                if result_path:
+                    return True, f"Successfully created card archive: {archive_filepath.name}"
+                else:
+                    return False, "Failed to create the archive file."
+            except Exception as e:
+                return False, f"Failed to create card archive: {e}"
+
+    def _create_markdown_file_for_prompt(self, prompt: PromptData, base_path: str):
+        safe_folder_path = os.path.join(base_path, *prompt.folder.replace("\\", "/").split("/"))
+        os.makedirs(safe_folder_path, exist_ok=True)
+
+        safe_filename = "".join(c for c in prompt.name if c.isalnum() or c in (' ', '_', '-')).rstrip()
+        filepath = os.path.join(safe_folder_path, f"{safe_filename}.md")
+
+        frontmatter = f"---\nname: \"{prompt.name}\"\ndescription: \"{prompt.description or ''}\"\ntags: [{', '.join(f'\"{t}\"' for t in prompt.tags)}]\nfolder: \"{prompt.folder}\"\ncreated_at: \"{prompt.created_at.isoformat()}\"\nupdated_at: \"{prompt.updated_at.isoformat()}\"\n---\n\n"
+        content = ""
+        if prompt.system_instruction:
+            content += f"### System Instruction\n\n{prompt.system_instruction}\n\n"
+        if prompt.user_instruction:
+            content += f"### User Instruction\n\n{prompt.user_instruction}\n\n"
+        if prompt.assistant_instruction:
+            content += f"### Assistant Instruction\n\n{prompt.assistant_instruction}\n\n"
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(frontmatter + content.strip())
+
+    def _create_markdown_file_for_card(self, card: CharacterCardData, base_path: str):
+        safe_folder_path = os.path.join(base_path, *card.folder.replace("\\", "/").split("/"))
+        os.makedirs(safe_folder_path, exist_ok=True)
+
+        safe_filename = "".join(c for c in card.name if c.isalnum() or c in (' ', '_', '-')).rstrip()
+        filepath = os.path.join(safe_folder_path, f"{safe_filename}.md")
+
+        frontmatter = f"---\nname: \"{card.name}\"\ntype: \"{card.type}\"\ndescription: \"{card.description or ''}\"\nfolder: \"{card.folder}\"\ncreated_at: \"{card.created_at.isoformat()}\"\nupdated_at: \"{card.updated_at.isoformat()}\"\n---\n\n"
+        content = f"### Instructions\n\n{card.instructions}\n\n"
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(frontmatter + content.strip())
+
+```
+
+## File: `src/promptbox/services/character_service.py`
+
+```python
+"""
+Service layer for handling business logic related to Character Cards.
+"""
+from promptbox.db.database import get_db
+from promptbox.db.models import CharacterCard as CharacterCardDBModel
+from promptbox.models.data_models import CharacterCardData
+
+class CharacterService:
+    def _db_to_pydantic(self, card: CharacterCardDBModel) -> CharacterCardData:
+        return CharacterCardData.model_validate(card)
+
+    def create_card(self, card_data: CharacterCardData) -> CharacterCardData:
+        with get_db() as db:
+            new_card = CharacterCardDBModel(**card_data.model_dump(exclude={'id', 'created_at', 'updated_at'}))
+            db.add(new_card)
+            db.commit()
+            db.refresh(new_card)
+            return self._db_to_pydantic(new_card)
+
+    def get_card_by_id(self, card_id: int) -> CharacterCardData | None:
+        with get_db() as db:
+            card = db.query(CharacterCardDBModel).filter(CharacterCardDBModel.id == card_id).first()
+            return self._db_to_pydantic(card) if card else None
+
+    def get_all_cards(self) -> list[CharacterCardData]:
+        with get_db() as db:
+            cards = db.query(CharacterCardDBModel).order_by(CharacterCardDBModel.folder, CharacterCardDBModel.name).all()
+            return [self._db_to_pydantic(c) for c in cards]
+
+    def update_card(self, card_id: int, card_data: CharacterCardData) -> CharacterCardData | None:
+        with get_db() as db:
+            card = db.query(CharacterCardDBModel).filter(CharacterCardDBModel.id == card_id).first()
+            if not card:
+                return None
+
+            update_data = card_data.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(card, key, value)
+
+            db.commit()
+            db.refresh(card)
+            return self._db_to_pydantic(card)
+
+    def delete_card(self, card_id: int) -> bool:
+        with get_db() as db:
+            card = db.query(CharacterCardDBModel).filter(CharacterCardDBModel.id == card_id).first()
+            if card:
+                db.delete(card)
+                db.commit()
+                return True
+            return False
+
+```
+
+## File: `src/promptbox/services/chat_service.py`
+
+```python
+from sqlalchemy import func
+from promptbox.db.database import get_db
+from promptbox.db.models import ChatLog as ChatLogDBModel, Prompt as PromptDBModel
+from promptbox.services.llm_service import LLMService
+from promptbox.services.prompt_service import PromptService
+from promptbox.utils.file_handler import save_markdown_file
+
+class ChatService:
+    def __init__(self, llm_service: LLMService, prompt_service: PromptService):
+        self.llm_service = llm_service
+        self.prompt_service = prompt_service
+
+    def get_next_log_number(self, db_session, prompt_id: int) -> str:
+        highest_num = db_session.query(func.max(func.substr(ChatLogDBModel.log_name, -2)))\
+            .filter(ChatLogDBModel.prompt_id == prompt_id)\
+            .scalar()
+
+        next_num = 0
+        if highest_num and highest_num.isdigit():
+            next_num = int(highest_num) + 1
+        
+        return f"{next_num:02d}"
+
+    def save_chat_log(self, prompt_id: int, chat_content: str) -> bool:
+        with get_db() as db:
+            prompt = db.query(PromptDBModel).filter(PromptDBModel.id == prompt_id).first()
+            if not prompt:
+                return False
+
+            log_name = f"{prompt.name}_chat_{self.get_next_log_number(db, prompt_id)}"
+            new_log = ChatLogDBModel(
+                prompt_id=prompt_id,
+                log_name=log_name,
+                content=chat_content
+            )
+            db.add(new_log)
+            db.commit()
+            return True
+
+    def get_chat_logs_for_prompt(self, prompt_id: int) -> list[ChatLogDBModel]:
+        with get_db() as db:
+            return db.query(ChatLogDBModel).filter(ChatLogDBModel.prompt_id == prompt_id).order_by(ChatLogDBModel.created_at.desc()).all()
+
+    def delete_chat_log(self, log_id: int) -> bool:
+        with get_db() as db:
+            log = db.query(ChatLogDBModel).filter(ChatLogDBModel.id == log_id).first()
+            if log:
+                db.delete(log)
+                db.commit()
+                return True
+            return False
+            
+    def export_log_to_markdown(self, log_id: int) -> str | None:
+        from promptbox.utils.file_handler import save_markdown_file
+        with get_db() as db:
+            log = db.query(ChatLogDBModel).filter(ChatLogDBModel.id == log_id).first()
+            if not log:
+                return None
+        file_path = save_markdown_file(f"{log.log_name}.md", log.content)
+        return file_path
+
+```
+
+## File: `src/promptbox/services/llm_service.py`
+
+```python
+import requests
+import streamlit as st
+
+# Langchain imports for model instantiation
+from langchain_core.language_models import BaseChatModel
+from langchain_community.chat_models import ChatOllama
+from langchain_mistralai import ChatMistralAI
+from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+
+# Native client imports for dynamically listing models
+import groq
+import google.generativeai as genai
+from openai import OpenAI
+
+from promptbox.core.config import settings
+
+
+class LLMService:
+    def get_chat_model(self, provider: str, model_name: str) -> BaseChatModel | None:
+        try:
+            match provider.lower():
+                case "ollama":
+                    return ChatOllama(model=model_name, base_url=settings.ollama_api_base)
+                case "mistral":
+                    return ChatMistralAI(model=model_name, api_key=settings.mistral_api_key)
+                case "groq":
+                    return ChatGroq(model_name=model_name, api_key=settings.groq_api_key)
+                case "gemini":
+                    return ChatGoogleGenerativeAI(model=model_name, google_api_key=settings.google_api_key)
+                case "cerebras":
+                    return ChatOpenAI(model=model_name, api_key=settings.cerebras_api_key, base_url="https://api.cerebras.ai/v1")
+                case _:
+                    st.warning(f"Unknown provider '{provider}'")
+                    return None
+        except Exception as e:
+            st.error(f"Error initializing model '{model_name}' from '{provider}': {e}")
+            return None
+
+    @st.cache_data(show_spinner="Fetching available LLM models...")
+    def list_available_models(_self) -> dict[str, list[str]]:
+        """
+        Using st.cache_data to prevent re-fetching models on every UI interaction.
+        The `_self` parameter is used because st.cache_data doesn't work on methods
+        out of the box, so we make it act like a static method for caching purposes.
+        """
+        models = {}
+
+        # --- Ollama (direct HTTP request, ignoring proxies) ---
+        try:
+            url = f"{settings.ollama_api_base}/api/tags"
+            response = requests.get(
+                url,
+                timeout=3,
+                proxies={'http': None, 'https': None}
+            )
+            response.raise_for_status()
+            model_data = response.json()
+            if model_data.get('models'):
+                models["Ollama"] = sorted([m['name'] for m in model_data['models']])
+        except Exception:
+            st.warning(f"Could not connect to Ollama at '{settings.ollama_api_base}'. Ensure the server is running.")
+
+        # --- Mistral (dynamic via direct HTTP request) ---
+        if settings.mistral_api_key:
+            try:
+                headers = {"Authorization": f"Bearer {settings.mistral_api_key}"}
+                response = requests.get("https://api.mistral.ai/v1/models", headers=headers, timeout=3)
+                response.raise_for_status()
+                model_data = response.json()
+                models["Mistral"] = sorted([m['id'] for m in model_data.get('data', [])])
+            except Exception as e:
+                st.warning(f"Could not fetch Mistral models. Check API key. Error: {e}")
+
+        # --- Groq (dynamic) ---
+        if settings.groq_api_key:
+            try:
+                client = groq.Groq(api_key=settings.groq_api_key)
+                model_list = client.models.list()
+                models["Groq"] = sorted([m.id for m in model_list.data if m.active])
+            except Exception as e:
+                st.warning(f"Could not fetch Groq models. Check API key. Error: {e}")
+
+        # --- Gemini (dynamic) ---
+        if settings.google_api_key:
+            try:
+                genai.configure(api_key=settings.google_api_key)
+                model_list = genai.list_models()
+                chat_models = [m.name for m in model_list if 'generateContent' in m.supported_generation_methods]
+                models["Gemini"] = sorted([name.replace('models/', '') for name in chat_models])
+            except Exception as e:
+                st.warning(f"Could not fetch Gemini models. Check API key. Error: {e}")
+
+        # --- Cerebras (dynamic) ---
+        if settings.cerebras_api_key:
+            try:
+                client = OpenAI(api_key=settings.cerebras_api_key, base_url="https://api.cerebras.ai/v1")
+                model_list = client.models.list()
+                models["Cerebras"] = sorted([m.id for m in model_list.data])
+            except Exception as e:
+                st.warning(f"Could not fetch Cerebras models. Check API key. Error: {e}")
+
+        return models
+
+```
+
+## File: `src/promptbox/services/prompt_service.py`
+
+```python
+import json
+import streamlit as st
+from sqlalchemy import or_
+from langchain_core.language_models import BaseChatModel
+from promptbox.db.database import get_db
+from promptbox.db.models import Prompt as PromptDBModel
+from promptbox.models.data_models import PromptData
+from promptbox.services.llm_service import LLMService
+
+class PromptService:
+    def __init__(self, llm_service: LLMService | None = None):
+        self.llm_service = llm_service
+
+    def _db_to_pydantic(self, prompt: PromptDBModel) -> PromptData:
+        return PromptData(
+            id=prompt.id,
+            name=prompt.name,
+            description=prompt.description,
+            system_instruction=prompt.system_instruction,
+            user_instruction=prompt.user_instruction,
+            assistant_instruction=prompt.assistant_instruction,
+            tags=prompt.tags.split(',') if prompt.tags else [],
+            folder=prompt.folder,
+            created_at=prompt.created_at,
+            updated_at=prompt.updated_at,
+        )
+
+    def create_prompt(self, prompt_data: PromptData) -> PromptData:
+        with get_db() as db:
+            tags_str = ','.join(prompt_data.tags)
+            new_prompt = PromptDBModel(
+                name=prompt_data.name,
+                description=prompt_data.description,
+                system_instruction=prompt_data.system_instruction,
+                user_instruction=prompt_data.user_instruction,
+                assistant_instruction=prompt_data.assistant_instruction,
+                tags=tags_str,
+                folder=prompt_data.folder,
+            )
+            db.add(new_prompt)
+            db.commit()
+            db.refresh(new_prompt)
+            return self._db_to_pydantic(new_prompt)
+
+    def get_prompt_by_id(self, prompt_id: int) -> PromptData | None:
+        with get_db() as db:
+            prompt = db.query(PromptDBModel).filter(PromptDBModel.id == prompt_id).first()
+            return self._db_to_pydantic(prompt) if prompt else None
+
+    def get_all_prompts(self) -> list[PromptData]:
+        with get_db() as db:
+            prompts = db.query(PromptDBModel).order_by(PromptDBModel.folder, PromptDBModel.name).all()
+            return [self._db_to_pydantic(p) for p in prompts]
+
+    def update_prompt(self, prompt_id: int, prompt_data: PromptData) -> PromptData | None:
+        with get_db() as db:
+            prompt = db.query(PromptDBModel).filter(PromptDBModel.id == prompt_id).first()
+            if not prompt:
+                return None
+
+            prompt.name = prompt_data.name
+            prompt.description = prompt_data.description
+            prompt.system_instruction = prompt_data.system_instruction
+            prompt.user_instruction = prompt_data.user_instruction
+            prompt.assistant_instruction = prompt_data.assistant_instruction
+            prompt.tags = ','.join(prompt_data.tags)
+            prompt.folder = prompt_data.folder
+
+            db.commit()
+            db.refresh(prompt)
+            return self._db_to_pydantic(prompt)
+
+    def delete_prompt(self, prompt_id: int) -> bool:
+        with get_db() as db:
+            prompt = db.query(PromptDBModel).filter(PromptDBModel.id == prompt_id).first()
+            if prompt:
+                db.delete(prompt)
+                db.commit()
+                return True
+            return False
+
+    def search_prompts_full_text(self, query: str) -> list[PromptData]:
+        with get_db() as db:
+            search_term = f"%{query.lower()}%"
+            results = db.query(PromptDBModel).filter(
+                or_(
+                    PromptDBModel.name.ilike(search_term),
+                    PromptDBModel.description.ilike(search_term),
+                    PromptDBModel.system_instruction.ilike(search_term),
+                    PromptDBModel.user_instruction.ilike(search_term),
+                    PromptDBModel.assistant_instruction.ilike(search_term),
+                    PromptDBModel.tags.ilike(search_term)
+                )
+            ).all()
+            return [self._db_to_pydantic(r) for r in results]
+
+    def improve_prompt(self, prompt_id: int, llm: BaseChatModel) -> dict[str, str] | None:
+        if not self.llm_service:
+            raise ValueError("LLMService is not configured.")
+
+        prompt_data = self.get_prompt_by_id(prompt_id)
+        if not prompt_data:
+            return None
+
+        original_prompt_text = f"""
+        "system_instruction": "{prompt_data.system_instruction or ''}",
+        "user_instruction": "{prompt_data.user_instruction or ''}",
+        "assistant_instruction": "{prompt_data.assistant_instruction or ''}"
+        """
+
+        optimization_instruction = f"""
+        You are an expert prompt engineer. Your task is to analyze the following LLM prompt and rewrite it to be clearer, more effective, and more robust.
+        Focus on clarity, specificity, and removing ambiguity.
+
+        You MUST return ONLY a single, valid JSON object containing the rewritten prompt.
+        The JSON object must have three keys: "system_instruction", "user_instruction", and "assistant_instruction".
+        Do not include any text, notes, or explanations before or after the JSON object.
+
+        Original prompt JSON to improve:
+        ---
+        {{
+        {original_prompt_text}
+        }}
+        ---
+        """
+
+        try:
+            response = llm.invoke(optimization_instruction)
+            json_start = response.content.find('{')
+            json_end = response.content.rfind('}') + 1
+            if json_start == -1 or json_end == 0:
+                st.error("LLM did not return a valid JSON object.")
+                return None
+
+            clean_json_str = response.content[json_start:json_end]
+            improved_data = json.loads(clean_json_str)
+            return improved_data
+        except json.JSONDecodeError:
+            st.error("Failed to decode JSON from the LLM response.")
+            return None
+        except Exception as e:
+            st.error(f"An error occurred during prompt improvement: {e}")
+            return None
+
+```
+
+## File: `src/promptbox/ui/backup_view.py`
+
+```python
+"""
+Renders the Streamlit UI for managing backups.
+"""
+import streamlit as st
+from promptbox.services.backup_service import BackupService
+from promptbox.core.config import settings
+
+def render_backup_view(backup_service: BackupService):
+    st.header("Backup & Restore")
+    
+    st.info(f"All backups are saved to: `{settings.backup_dir}`")
+
+    st.subheader("Create Backups")
+    st.markdown("Create a complete backup of your data. It's a good idea to do this regularly!")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("📦 Backup Database File", use_container_width=True):
+            with st.spinner("Backing up database..."):
+                success, message = backup_service.backup_database_file()
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
+
+    with col2:
+        if st.button("📝 Backup Prompts to Markdown", use_container_width=True):
+            with st.spinner("Exporting prompts to archive..."):
+                success, message = backup_service.backup_prompts_to_archive()
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
+    
+    with col3:
+        if st.button("🎭 Backup Cards to Markdown", use_container_width=True):
+            with st.spinner("Exporting cards to archive..."):
+                success, message = backup_service.backup_cards_to_archive()
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
+
+    st.markdown("---")
+    
+    st.subheader("Existing Backups")
+    try:
+        backup_dir = settings.backup_dir
+        if not backup_dir.exists() or not any(backup_dir.iterdir()):
+            st.info("No backup files found yet.")
+        else:
+            files = sorted(backup_dir.iterdir(), key=lambda f: f.stat().st_mtime, reverse=True)
+            for f in files:
+                st.code(f.name, language=None)
+    except Exception as e:
+        st.error(f"Could not read backup directory: {e}")
+
+```
+
+## File: `src/promptbox/ui/character_view.py`
+
+```python
+"""
+Renders the Streamlit UI for managing character and scenario cards.
+"""
+import streamlit as st
+import pandas as pd
+from promptbox.services.character_service import CharacterService
+from promptbox.models.data_models import CharacterCardData
+
+def render_character_view(character_service: CharacterService):
+    st.header("Manage Characters & Scenarios")
+
+    if st.button("➕ Create New Card"):
+        st.session_state.selected_card_id = None
+        st.rerun()
+
+    cards = character_service.get_all_cards()
+    df = pd.DataFrame([c.model_dump() for c in cards]) if cards else pd.DataFrame()
+
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        st.subheader("All Cards")
+        if not cards:
+            st.info("No cards found. Click 'Create New Card' to begin.")
+        else:
+            st.info("Select a card from the table to view details.")
+            st.dataframe(
+                df[['id', 'name', 'type', 'folder', 'description']],
+                hide_index=True,
+                use_container_width=True,
+                key="card_selector",
+                on_select="rerun",
+                selection_mode="single-row"
+            )
+
+    if 'card_selector' in st.session_state and st.session_state.card_selector.selection.rows:
+        selected_index = st.session_state.card_selector.selection.rows[0]
+        if selected_index < len(df):
+            st.session_state.selected_card_id = int(df.iloc[selected_index]['id'])
+
+    with col2:
+        if st.session_state.get("selected_card_id"):
+            card = character_service.get_card_by_id(st.session_state.selected_card_id)
+            if card:
+                st.subheader(f"Edit: {card.name}")
+                render_edit_form(character_service, card)
+            else:
+                st.warning("The previously selected card is no longer available.")
+                st.session_state.selected_card_id = None
+        else:
+            st.subheader("Create New Card")
+            render_create_form(character_service)
+
+
+def render_create_form(character_service: CharacterService):
+    with st.form(key="card_form_create"):
+        st.text_input("Name", key="char_name_create")
+        st.selectbox("Type", ["character", "scenario"], key="char_type_create")
+        st.text_input("Folder", "general", key="char_folder_create")
+        st.text_area("Description", height=100, key="char_description_create")
+        # --- FIXED: Updated info text to reflect correct [[variable]] format ---
+        st.info("Use `[[variable_name]]` for template variables.")
+        st.text_area("Instructions", height=300, help="Persona or scenario instructions.", key="char_instructions_create")
+        
+        if st.form_submit_button("Create Card"):
+            name = st.session_state.char_name_create
+            instructions = st.session_state.char_instructions_create
+            if not name.strip() or not instructions.strip():
+                st.error("Name and Instructions are required fields."); return
+
+            try:
+                card_data = CharacterCardData(
+                    name=name, type=st.session_state.char_type_create, folder=st.session_state.char_folder_create,
+                    description=st.session_state.char_description_create, instructions=instructions,
+                )
+                character_service.create_card(card_data)
+                st.success(f"Card '{card_data.name}' created successfully!")
+            except Exception as e:
+                st.error(f"Failed to save card: {e}")
+
+def render_edit_form(character_service: CharacterService, card: CharacterCardData):
+    with st.form(key=f"card_form_edit_{card.id}"):
+        st.text_input("Name", value=card.name, key=f"char_name_edit_{card.id}")
+        st.selectbox("Type", ["character", "scenario"], index=["character", "scenario"].index(card.type), key=f"char_type_edit_{card.id}")
+        st.text_input("Folder", value=card.folder, key=f"char_folder_edit_{card.id}")
+        st.text_area("Description", value=card.description or "", height=100, key=f"char_description_edit_{card.id}")
+        # --- FIXED: Updated info text to reflect correct [[variable]] format ---
+        st.info("Use `[[variable_name]]` for template variables.")
+        st.text_area("Instructions", value=card.instructions, height=300, help="Persona or scenario instructions.", key=f"char_instructions_edit_{card.id}")
+        
+        if st.form_submit_button("Save Changes"):
+            name = st.session_state[f"char_name_edit_{card.id}"]
+            instructions = st.session_state[f"char_instructions_edit_{card.id}"]
+            if not name.strip() or not instructions.strip():
+                st.error("Name and Instructions are required fields."); return
+            
+            try:
+                card_data = CharacterCardData(
+                    name=name, type=st.session_state[f"char_type_edit_{card.id}"], folder=st.session_state[f"char_folder_edit_{card.id}"],
+                    description=st.session_state[f"char_description_edit_{card.id}"], instructions=instructions,
+                )
+                character_service.update_card(card.id, card_data)
+                st.success(f"Card '{card_data.name}' updated successfully!")
+            except Exception as e:
+                st.error(f"Failed to save card: {e}")
+
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(f"💬 Chat with this {card.type.capitalize()}", use_container_width=True):
+            st.session_state.active_card = card
+            st.session_state.view = "chat"
+            st.rerun()
+    with col2:
+        if st.button("🗑️ Delete Card", type="primary", use_container_width=True):
+            if character_service.delete_card(card.id):
+                st.success(f"Card '{card.name}' deleted.")
+                st.session_state.selected_card_id = None
+                st.rerun()
+            else:
+                st.error("Failed to delete card.")
+
+```
+
+## File: `src/promptbox/ui/chat_view.py`
+
+```python
+"""
+Renders the chat interface, including variable substitution and conversation flow.
+"""
+import streamlit as st
+from datetime import datetime
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
+from promptbox.services.llm_service import LLMService
+from promptbox.services.chat_service import ChatService
+from promptbox.utils.prompt_parser import extract_variables, substitute_variables
+from promptbox.core.config import settings
+
+def initialize_chat_messages(prompt_data=None, card_data=None, variable_context=None) -> list[BaseMessage]:
+    """
+    Creates the initial list of messages for the chat, substituting variables as needed.
+    """
+    messages = []
+    variable_context = variable_context or {}
+
+    if prompt_data:
+        if prompt_data.system_instruction:
+            messages.append(SystemMessage(content=substitute_variables(prompt_data.system_instruction, variable_context)))
+        if prompt_data.user_instruction:
+            messages.append(HumanMessage(content=substitute_variables(prompt_data.user_instruction, variable_context)))
+        if prompt_data.assistant_instruction:
+            messages.append(AIMessage(content=substitute_variables(prompt_data.assistant_instruction, variable_context)))
+    elif card_data:
+        messages.append(SystemMessage(content=substitute_variables(card_data.instructions, variable_context)))
+
+    return messages
+
+def _save_chat_to_markdown(messages: list[BaseMessage], item_name: str):
+    """Formats and saves the current chat to a markdown file."""
+    if not messages:
+        st.warning("There is nothing to save.")
+        return
+
+    # Format the conversation history into a markdown string
+    content = f"# Chat with {item_name}\n\n"
+    for msg in messages:
+        if isinstance(msg, SystemMessage):
+            content += f"## System Instruction\n\n> {msg.content}\n\n"
+        elif isinstance(msg, HumanMessage):
+            content += f"### User\n\n{msg.content}\n\n"
+        elif isinstance(msg, AIMessage):
+            content += f"### Assistant\n\n{msg.content}\n\n"
+        content += "---\n\n"
+    
+    # Create a unique filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_item_name = "".join(c for c in item_name if c.isalnum() or c in (' ', '_', '-')).rstrip()
+    filename = f"Chat with {safe_item_name} {timestamp}.md"
+    
+    # Save the file
+    try:
+        save_path = settings.backup_dir / filename
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        st.success(f"Chat saved successfully to: `{save_path}`")
+    except Exception as e:
+        st.error(f"Failed to save chat log: {e}")
+
+
+def render_chat_ui(llm_service: LLMService, chat_service: ChatService, item_name: str):
+    """
+    Manages the entire chat UI lifecycle using a simple, robust state machine.
+    """
+    st.header(f"Chatting with: {item_name}")
+    
+    active_item = st.session_state.get("active_prompt") or st.session_state.get("active_card")
+    if not active_item:
+        st.error("No active prompt or card selected. Please return to the previous page.")
+        return
+    
+    current_item_id = f"{type(active_item).__name__}_{active_item.id}"
+    
+    if st.session_state.get("current_chat_item_id") != current_item_id:
+        st.session_state.current_chat_item_id = current_item_id
+        st.session_state.chat_stage = "setup"
+    
+    if "chat_stage" not in st.session_state:
+        st.session_state.chat_stage = "setup"
+
+    if st.session_state.chat_stage == "setup":
+        # ... Setup stage remains the same ...
+        st.subheader("Chat Setup")
+        st.markdown("Confirm the model and fill in any required variables for this session.")
+        
+        available_models = llm_service.list_available_models()
+        if not available_models:
+            st.error("No LLM providers are configured."); return
+
+        col1, col2 = st.columns(2)
+        provider = col1.selectbox("Provider", options=list(available_models.keys()), key="setup_provider")
+        model_name = col2.selectbox("Model", options=available_models.get(st.session_state.setup_provider, []), key="setup_model")
+
+        prompt_data = st.session_state.get("active_prompt")
+        card_data = st.session_state.get("active_card")
+        initial_text = ""
+        if prompt_data:
+            initial_text = (prompt_data.system_instruction or "") + (prompt_data.user_instruction or "") + (prompt_data.assistant_instruction or "")
+        elif card_data:
+            initial_text = card_data.instructions or ""
+        
+        variables = extract_variables(initial_text)
+        if variables:
+            st.markdown("---")
+            st.subheader("Fill in the Blanks")
+            for var in variables:
+                st.text_input(f"Value for `[[{var}]]`:", key=f"var_{var}")
+
+        st.markdown("---")
+        if st.button("Start Chat", type="primary", use_container_width=True):
+            if variables and not all(st.session_state.get(f"var_{v}", "").strip() for v in variables):
+                st.error("Please fill in all variable values before starting the chat."); return
+            
+            st.session_state.chat_provider = st.session_state.setup_provider
+            st.session_state.chat_model = st.session_state.setup_model
+            
+            final_context = {v: st.session_state[f"var_{v}"] for v in variables}
+
+            st.session_state.messages = initialize_chat_messages(prompt_data, card_data, final_context)
+            st.session_state.chat_stage = "chatting"
+            st.rerun()
+        return
+
+    if st.session_state.chat_stage == "chatting":
+        # --- ACTION BUTTONS (SAVE/CHANGE MODEL) ---
+        col1, col2, _ = st.columns([1, 1, 3])
+        with col1:
+            if st.button("💾 Save Chat Log"):
+                _save_chat_to_markdown(st.session_state.get("messages", []), item_name)
+        with col2:
+            if st.button("⚙️ Change Model"):
+                st.session_state.chat_stage = "setup"
+                st.rerun()
+
+        st.caption(f"Using Model: {st.session_state.chat_provider} / {st.session_state.chat_model}")
+        st.markdown("---")
+        
+        llm = llm_service.get_chat_model(st.session_state.chat_provider, st.session_state.chat_model)
+        if not llm:
+            st.error(f"Failed to initialize model '{st.session_state.chat_model}'.")
+            return
+        
+        for msg in st.session_state.get("messages", []):
+            role = "user" if isinstance(msg, HumanMessage) else ("system" if isinstance(msg, SystemMessage) else "assistant")
+            with st.chat_message(role):
+                st.markdown(msg.content)
+        
+        if user_input := st.chat_input("Your message..."):
+            st.session_state.messages.append(HumanMessage(content=user_input))
+            st.rerun()
+
+        if st.session_state.messages and isinstance(st.session_state.messages[-1], HumanMessage):
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    try:
+                        response_placeholder = st.empty()
+                        full_response = ""
+                        for chunk in llm.stream(st.session_state.messages):
+                            full_response += chunk.content
+                            response_placeholder.markdown(full_response + "▌")
+                        response_placeholder.markdown(full_response)
+                        st.session_state.messages.append(AIMessage(content=full_response))
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"An error occurred while communicating with the LLM: {e}")
+
+```
+
+## File: `src/promptbox/ui/prompt_view.py`
+
+```python
+"""
+Renders the Streamlit UI for managing prompts.
+"""
+import streamlit as st
+import pandas as pd
+from promptbox.services.prompt_service import PromptService
+from promptbox.models.data_models import PromptData
+from promptbox.services.llm_service import LLMService
+
+def render_prompt_view(prompt_service: PromptService, llm_service: LLMService):
+    """
+    Main function to render the entire prompt management page.
+    """
+    st.header("Manage Prompts")
+
+    if st.button("➕ Create New Prompt"):
+        st.session_state.selected_prompt_id = None
+        st.rerun()
+
+    prompts = prompt_service.get_all_prompts()
+    df = pd.DataFrame([p.model_dump() for p in prompts]) if prompts else pd.DataFrame()
+
+    col1, col2 = st.columns([3, 2])
+
+    with col1:
+        st.subheader("All Prompts")
+        if not prompts:
+            st.info("No prompts found. Click 'Create New Prompt' to begin.")
+        else:
+            st.info("Select a prompt from the table to view details.")
+            st.dataframe(
+                df[['id', 'name', 'folder', 'description']],
+                hide_index=True,
+                use_container_width=True,
+                key="prompt_selector",
+                on_select="rerun",
+                selection_mode="single-row"
+            )
+
+    if 'prompt_selector' in st.session_state and st.session_state.prompt_selector.selection.rows:
+        selected_index = st.session_state.prompt_selector.selection.rows[0]
+        if selected_index < len(df):
+            st.session_state.selected_prompt_id = int(df.iloc[selected_index]['id'])
+
+    with col2:
+        if st.session_state.get("selected_prompt_id"):
+            prompt = prompt_service.get_prompt_by_id(st.session_state.selected_prompt_id)
+            if prompt:
+                st.subheader(f"Edit: {prompt.name}")
+                render_edit_form(prompt_service, llm_service, prompt)
+            else:
+                st.warning("The previously selected prompt is no longer available.")
+                st.session_state.selected_prompt_id = None
+        else:
+            st.subheader("Create New Prompt")
+            render_create_form(prompt_service)
+
+
+def render_create_form(prompt_service: PromptService):
+    """Renders the form for creating a new prompt."""
+    with st.form(key="prompt_form_create"):
+        st.text_input("Name", key="prompt_name_create")
+        st.text_input("Folder", "general", key="prompt_folder_create")
+        st.text_input("Tags (comma-separated)", key="prompt_tags_create")
+        st.text_area("Description", height=100, key="prompt_description_create")
+        # --- FIXED: Updated info text to reflect correct [[variable]] format ---
+        st.info("Use `[[variable_name]]` for template variables.")
+        st.text_area("System Instruction", height=150, key="prompt_system_create")
+        st.text_area("User Instruction", height=150, key="prompt_user_create")
+        st.text_area("Assistant Instruction", height=150, key="prompt_assistant_create")
+        
+        if st.form_submit_button("Create Prompt"):
+            name = st.session_state.prompt_name_create
+            if not name.strip():
+                st.error("The 'Name' field is required."); return
+            
+            try:
+                tags_list = [tag.strip() for tag in st.session_state.prompt_tags_create.split(',') if tag.strip()]
+                prompt_data = PromptData(
+                    name=name, folder=st.session_state.prompt_folder_create, tags=tags_list,
+                    description=st.session_state.prompt_description_create,
+                    system_instruction=st.session_state.prompt_system_create or None,
+                    user_instruction=st.session_state.prompt_user_create or None,
+                    assistant_instruction=st.session_state.prompt_assistant_create or None,
+                )
+                prompt_service.create_prompt(prompt_data)
+                st.success(f"Prompt '{prompt_data.name}' created successfully!")
+            except Exception as e:
+                st.error(f"Failed to save prompt: {e}")
+
+def render_edit_form(prompt_service: PromptService, llm_service: LLMService, prompt: PromptData):
+    """Renders the form for editing an existing prompt, including all actions."""
+    form_key = f"prompt_form_edit_{prompt.id}"
+    with st.form(key=form_key):
+        st.text_input("Name", value=prompt.name, key=f"prompt_name_{form_key}")
+        st.text_input("Folder", value=prompt.folder, key=f"prompt_folder_{form_key}")
+        st.text_input("Tags (comma-separated)", value=", ".join(prompt.tags), key=f"prompt_tags_{form_key}")
+        st.text_area("Description", value=prompt.description or "", height=100, key=f"prompt_description_{form_key}")
+        # --- FIXED: Updated info text to reflect correct [[variable]] format ---
+        st.info("Use `[[variable_name]]` for template variables.")
+        st.text_area("System Instruction", value=st.session_state.get(f"prompt_system_{form_key}", prompt.system_instruction or ""), key=f"prompt_system_{form_key}")
+        st.text_area("User Instruction", value=st.session_state.get(f"prompt_user_{form_key}", prompt.user_instruction or ""), key=f"prompt_user_{form_key}")
+        st.text_area("Assistant Instruction", value=st.session_state.get(f"prompt_assistant_{form_key}", prompt.assistant_instruction or ""), key=f"prompt_assistant_{form_key}")
+        
+        if st.form_submit_button("Save Changes"):
+            name = st.session_state[f"prompt_name_{form_key}"]
+            if not name.strip():
+                st.error("The 'Name' field is required."); return
+            
+            try:
+                tags_list = [tag.strip() for tag in st.session_state[f"prompt_tags_{form_key}"].split(',') if tag.strip()]
+                prompt_data = PromptData(
+                    name=name, folder=st.session_state[f"prompt_folder_{form_key}"], tags=tags_list,
+                    description=st.session_state[f"prompt_description_{form_key}"],
+                    system_instruction=st.session_state[f"prompt_system_{form_key}"] or None,
+                    user_instruction=st.session_state[f"prompt_user_{form_key}"] or None,
+                    assistant_instruction=st.session_state[f"prompt_assistant_{form_key}"] or None,
+                )
+                prompt_service.update_prompt(prompt.id, prompt_data)
+                st.success(f"Prompt '{prompt_data.name}' updated successfully!")
+            except Exception as e:
+                st.error(f"Failed to save prompt: {e}")
+
+    st.markdown("---")
+    
+    with st.expander("✨ Improve with AI"):
+        available_models = llm_service.list_available_models()
+        if not available_models:
+            st.warning("No LLM providers configured.")
+        else:
+            c1, c2 = st.columns(2)
+            provider = c1.selectbox("Select Provider", options=list(available_models.keys()), key=f"improve_provider_{prompt.id}")
+            model_name = c2.selectbox("Select Model", options=available_models.get(provider, []), key=f"improve_model_{prompt.id}")
+            if st.button("Analyze and Suggest Improvements", key=f"improve_btn_{prompt.id}"):
+                llm = llm_service.get_chat_model(provider, model_name)
+                if llm:
+                    with st.spinner("AI is analyzing your prompt..."):
+                        st.session_state[f"suggestion_{prompt.id}"] = prompt_service.improve_prompt(prompt.id, llm)
+                else: st.error("Could not initialize the selected LLM.")
+    
+    if st.session_state.get(f"suggestion_{prompt.id}"):
+        suggestion = st.session_state[f"suggestion_{prompt.id}"]
+        st.subheader("AI Suggestion")
+        st.info("Review the suggestion below. Click 'Apply' to load it into the form, then 'Save Changes'.")
+        st.text_area("Suggested System Instruction", value=suggestion.get("system_instruction", ""), height=150, disabled=True)
+        st.text_area("Suggested User Instruction", value=suggestion.get("user_instruction", ""), height=150, disabled=True)
+        st.text_area("Suggested Assistant Instruction", value=suggestion.get("assistant_instruction", ""), height=150, disabled=True)
+        if st.button("Apply Suggestions", key=f"apply_suggestion_{prompt.id}"):
+            st.session_state[f"prompt_system_{form_key}"] = suggestion.get("system_instruction", "")
+            st.session_state[f"prompt_user_{form_key}"] = suggestion.get("user_instruction", "")
+            st.session_state[f"prompt_assistant_{form_key}"] = suggestion.get("assistant_instruction", "")
+            del st.session_state[f"suggestion_{prompt.id}"]
+            st.rerun()
+
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💬 Chat with this Prompt", use_container_width=True):
+            st.session_state.active_prompt = prompt
+            st.session_state.view = "chat"
+            st.rerun()
+    with col2:
+        if st.button("🗑️ Delete Prompt", type="primary", use_container_width=True):
+            if prompt_service.delete_prompt(prompt.id):
+                st.success(f"Prompt '{prompt.name}' deleted.")
+                st.session_state.selected_prompt_id = None
+                st.rerun()
+            else:
+                st.error("Failed to delete prompt.")
+
+```
+
+## File: `src/promptbox/utils/archiver.py`
+
+```python
+"""
+Contains utility functions for creating compressed archives.
+"""
+
+import tarfile
+from pathlib import Path
+from typing import Union
+
+def create_tar_gz_archive(
+    source_dir: Union[str, Path],
+    archive_path: Union[str, Path],
+    arcname: str = None
+) -> str | None:
+    """
+    Creates a compressed tar.gz archive from a source directory.
+
+    Args:
+        source_dir (Union[str, Path]): The path to the directory to be archived.
+        archive_path (Union[str, Path]): The full path for the output .tar.gz file.
+                                         The parent directory will be created if it doesn't exist.
+        arcname (str, optional): The name for the root directory inside the archive.
+                                 If None, it defaults to the basename of the source_dir.
+
+    Returns:
+        str: The path to the created archive on success, otherwise None.
+    """
+    source_dir = Path(source_dir)
+    archive_path = Path(archive_path)
+
+    # Ensure the source directory exists
+    if not source_dir.is_dir():
+        print(f"Error: Source directory not found at '{source_dir}'")
+        return None
+
+    # Ensure the destination directory exists
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Determine the name of the root folder within the archive
+    archive_root_name = arcname if arcname is not None else source_dir.name
+
+    try:
+        with tarfile.open(archive_path, "w:gz") as tar:
+            tar.add(source_dir, arcname=archive_root_name)
+
+        return str(archive_path)
+    except Exception as e:
+        print(f"Failed to create archive: {e}")
+        return None
+
+```
+
+## File: `src/promptbox/utils/file_handler.py`
+
+```python
+"""
+Contains utility functions for handling files, particularly markdown
+with YAML frontmatter.
+"""
+
+import yaml
+from pathlib import Path
+from typing import Tuple, Dict, Any
+
+# Define a custom exception for parsing errors
+class FrontmatterError(ValueError):
+    """Custom exception for errors related to frontmatter parsing."""
+    pass
+
+def parse_markdown_with_frontmatter(file_path: str | Path) -> Tuple[Dict[str, Any], str]:
+    """
+    Parses a markdown file to separate YAML frontmatter from the main content.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except FileNotFoundError:
+        raise
+    except Exception as e:
+        raise FrontmatterError(f"Could not read file at {file_path}: {e}")
+
+    if not content.startswith('---'):
+        return {}, content
+
+    parts = content.split('---', 2)
+    if len(parts) < 3:
+        raise FrontmatterError(
+            f"Malformed frontmatter in {file_path}. Ensure it is enclosed in '---' blocks."
+        )
+
+    frontmatter_str = parts[1]
+    main_content = parts[2].strip()
+
+    try:
+        metadata = yaml.safe_load(frontmatter_str)
+        if not isinstance(metadata, dict):
+            raise FrontmatterError("Frontmatter did not parse as a dictionary (key-value pairs).")
+        return metadata, main_content
+    except yaml.YAMLError as e:
+        raise FrontmatterError(f"Error parsing YAML frontmatter in {file_path}: {e}")
+
+def save_markdown_file(filename: str, content: str, directory: Path | str | None = None) -> str:
+    """
+    Saves content to a markdown file in a specified directory.
+    """
+    import tempfile 
+
+    if directory is None:
+        save_dir = Path(tempfile.gettempdir())
+    else:
+        save_dir = Path(directory)
+
+    save_dir.mkdir(parents=True, exist_ok=True)
+    file_path = save_dir / filename
+
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return str(file_path)
+    except Exception as e:
+        print(f"Error saving file {file_path}: {e}")
+        raise
+
+```
+
+## File: `src/promptbox/utils/prompt_parser.py`
+
+```python
+"""
+Utilities for parsing and handling template variables in prompt strings.
+This version correctly handles the user-specified [[variable]] format.
+"""
+
+import re
+
+def extract_variables(text: str) -> list[str]:
+    """
+    Extracts all unique variables formatted as [[variable_name]] from a string.
+    """
+    if not text:
+        return []
+    # This regex finds all occurrences of [[...]] and captures the content inside.
+    # It's made unique by converting to a set, then sorted for consistent order.
+    variables = re.findall(r"\[\[\s*(\w+)\s*\]\]", text)
+    return sorted(list(set(variables)))
+
+
+def substitute_variables(text: str, context: dict[str, str]) -> str:
+    """
+    Substitutes [[variable_name]] in a string with values from a context dictionary.
+    """
+    if not text or not context:
+        return text
+
+    # Iteratively replace each variable found in the context.
+    for var_name, var_value in context.items():
+        # Build the pattern to find for this specific variable, e.g., [[my_var]]
+        pattern = r"\[\[\s*" + re.escape(var_name) + r"\s*\]\]"
+        text = re.sub(pattern, var_value, text)
+        
+    return text
+
+```
+
+## File: `src/promptbox/app.py`
+
+```python
+"""
+Main entry point for the Promptbox Streamlit application.
+"""
+import sys
+from pathlib import Path
+file_path = Path(__file__).resolve()
+src_path = file_path.parent.parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+import streamlit as st
+from promptbox.db.database import init_engine, create_db_and_tables
+from promptbox.services.llm_service import LLMService
+from promptbox.services.prompt_service import PromptService
+from promptbox.services.character_service import CharacterService
+from promptbox.services.backup_service import BackupService
+from promptbox.services.chat_service import ChatService # <-- IMPORT ADDED
+from promptbox.ui.prompt_view import render_prompt_view
+from promptbox.ui.character_view import render_character_view
+from promptbox.ui.chat_view import render_chat_ui
+from promptbox.ui.backup_view import render_backup_view
+
+def initialize_services():
+    """Initialize and cache services."""
+    if 'llm_service' not in st.session_state:
+        st.session_state.llm_service = LLMService()
+    if 'prompt_service' not in st.session_state:
+        st.session_state.prompt_service = PromptService(st.session_state.llm_service)
+    if 'character_service' not in st.session_state:
+        st.session_state.character_service = CharacterService()
+    if 'backup_service' not in st.session_state:
+        st.session_state.backup_service = BackupService(
+            st.session_state.prompt_service, st.session_state.character_service
+        )
+    # --- ADDED: Initialize ChatService ---
+    if 'chat_service' not in st.session_state:
+        st.session_state.chat_service = ChatService(
+            st.session_state.llm_service, st.session_state.prompt_service
+        )
+
+def main():
+    st.set_page_config(page_title="promptbox", layout="wide")
+
+    if not init_engine():
+        st.stop()
+    
+    create_db_and_tables()
+
+    initialize_services()
+    llm_service = st.session_state.llm_service
+    prompt_service = st.session_state.prompt_service
+    character_service = st.session_state.character_service
+    backup_service = st.session_state.backup_service
+    chat_service = st.session_state.chat_service # <-- Get service instance
+
+    if "view" not in st.session_state:
+        st.session_state.view = "home"
+
+    with st.sidebar:
+        # Sidebar code remains unchanged...
+        st.title("promptbox")
+        st.caption("Your personal LLM toolkit.")
+        if st.button("🏠 Home", use_container_width=True):
+            st.session_state.view = "home"
+            for key in list(st.session_state.keys()):
+                if key not in ['llm_service', 'prompt_service', 'character_service', 'backup_service', 'chat_service']:
+                    del st.session_state[key]
+            st.rerun()
+        if st.button("📝 Prompts", use_container_width=True):
+            st.session_state.view = "prompts"
+            st.rerun()
+        if st.button("🎭 Characters/Scenarios", use_container_width=True):
+            st.session_state.view = "characters"
+            st.rerun()
+        if st.button("💾 Backups", use_container_width=True):
+            st.session_state.view = "backups"
+            st.rerun()
+        st.markdown("---")
+        st.info("This application connects to various LLM providers. Ensure your API keys are set in a `.env` file in the project root.")
+
+    if st.session_state.view == "home":
+        st.header("Welcome to Promptbox!")
+        st.markdown("Use the navigation panel on the left to get started.")
+
+    elif st.session_state.view == "prompts":
+        render_prompt_view(prompt_service, llm_service)
+
+    elif st.session_state.view == "characters":
+        render_character_view(character_service)
+    
+    elif st.session_state.view == "backups":
+        render_backup_view(backup_service)
+
+    elif st.session_state.view == "chat":
+        item_name = ""
+        if "active_prompt" in st.session_state:
+            item_name = st.session_state.active_prompt.name
+        elif "active_card" in st.session_state:
+            item_name = st.session_state.active_card.name
+        # --- UPDATED: Pass ChatService to the UI ---
+        render_chat_ui(llm_service, chat_service, item_name)
+
+if __name__ == "__main__":
+    main()
+
+```
+
+## File: `src/promptbox/main.py`
+
+```python
+"""
+The main entry point for the promptbox application.
+"""
+from promptbox.db.database import create_db_and_tables
+from promptbox.tui.app import App
+from promptbox.tui.components import console
+
+def start():
+    """
+    Initializes and runs the promptbox application.
+    """
+    try:
+        create_db_and_tables()
+        app = App()
+        app.run()
+    except Exception as e:
+        console.print_exception(show_locals=True)
+        console.log(f"[bold red]An unexpected critical error occurred: {e}[/]")
+        console.input("\nPress Enter to exit.")
+
+if __name__ == "__main__":
+    start()
+
+```
+
+## File: `README.md`
+
+```markdown
+# `promptbox`
+
+**A powerful, terminal-based toolkit for creating, managing, and interacting with Large Language Model (LLM) prompts.**
+
+`promptbox` is a local-first TUI (Text-based User Interface) designed for developers, writers, and prompt engineers who want a fast, efficient, and keyboard-driven workflow for their prompts. It helps you organize your prompt library, test prompts against multiple LLM providers, and maintain a history of your interactions.
+
+I have wanted an application like this, using my Dropbox to nest prompts in folders but even this was not enough as I couldn't just run prompts there from the editor.
+
+![promptbox_screenshot](https://user-images.githubusercontent.com/12345/some-image-url.png) <!-- Placeholder for a future screenshot -->
+
+---
+
+## Core Features
+
+- **🗃️ Prompt Library:** Create, store, and manage your prompts in a local SQLite database. Organize them with names, descriptions, folders, and tags.
+- **⚡️ Interactive Chat:** Test any prompt in an interactive chat session. The UI is clean, responsive, and designed for conversation.
+- **🌐 Multi-Provider Support:** Seamlessly switch between different LLM providers (with free tiers that I use, you can PR openai if you are willing to support it or tell me about other free providers as you wish) and models for any chat session. `promptbox` dynamically fetches the available models from each provider's API.
+  - Ollama (for local models)
+  - Mistral
+  - Groq
+  - Google (Gemini)
+  - Cerebras
+- **🤖 AI-Powered Improvement:** Use one LLM to analyze and improve a prompt you've written. Get suggestions for clarity, effectiveness, and robustness.
+- **🔍 Full-Text Search:** Quickly find any prompt by searching through its name, description, tags, and instruction content.
+- **📦 Backup & Export:**
+  - Create a timestamped backup of your entire prompt database.
+  - Export all your prompts to a structured `.tar.gz` archive of Markdown files.
+- **💻 Local-First Philosophy:** Your data is yours. The prompt database and configuration are stored locally on your machine in a dedicated `~/.promptbox` directory.
+
+## Installation
+
+`promptbox` requires **Python 3.11** or newer.
+
+1.  **Check your Python version:**
+
+    ```bash
+    python --version
+    ```
+
+2.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/your-username/promptbox.git
+    cd promptbox
+    ```
+
+3.  **Install the application:**
+    This command uses `pip` to install the project and all its dependencies, making the `promptbox` command available in your terminal.
+    ```bash
+    pip install .
+    ```
+    _For developers who want to modify the code, install in editable mode:_
+    ```bash
+    pip install -e .
+    ```
+
+## Configuration
+
+Before running the application, you must configure your API keys.
+
+1.  **Create a `.env` file:** In the root of the `promptbox` project directory, create a file named `.env`.
+
+2.  **Add your API Keys:** Copy the template below into your `.env` file and add the API keys for the services you wish to use. You only need to provide keys for the providers you have access to.
+
+    ```dotenv
+    # .env file
+
+    # --- Cloud Provider API Keys (only fill in the ones you use) ---
+    MISTRAL_API_KEY="your-mistral-api-key"
+    GROQ_API_KEY="your-groq-api-key"
+    GOOGLE_API_KEY="your-google-api-key"
+    CEREBRAS_API_KEY="your-cerebras-api-key"
+
+    # --- (Optional) Override for local Ollama server address ---
+    # The application defaults to http://127.0.0.1:11434 if this is not set.
+    # OLLAMA_API_BASE="http://127.0.0.1:11434"
+    ```
+
+The application will automatically load these keys when it starts.
+
+## Usage
+
+To run the application, simply execute the command in your terminal:
+
+```bash
+promptbox
+```
+
+You will be greeted by the main menu, which is the central hub for all actions.
+
+### Main Menu Navigation
+
+- **(L)ist & Manage Prompts:** The core of the application. This takes you to a scrollable list of all your saved prompts.
+
+  - From the list, enter a prompt's ID to view its details and access the **Actions Menu**.
+  - **Actions Menu:**
+    - **(c) Chat:** Start a new interactive chat session using this prompt as the template.
+    - **(e) Edit:** (Not yet implemented) Modify the selected prompt.
+    - **(d) Delete:** Permanently remove the prompt from your database.
+    - **(i) Improve:** Use another LLM to suggest improvements to your prompt's text.
+    - **(b) Back:** Return to the prompt list.
+
+- **(N)ew Prompt:** Launch a step-by-step wizard to create and save a new prompt. You'll be asked for a name, folder, tags, and the system, user, and assistant instructions.
+
+  - For multi-line input (like prompt instructions), use `Ctrl+D` (on Linux/macOS) or `Ctrl+Z` then `Enter` (on Windows) on a new line to finish typing.
+
+- **(S)earch Prompts:** Perform a case-insensitive, full-text search across all fields of your prompts.
+
+- **(B)ackup Options:** Create backups of your data.
+
+- **(Q)uit:** Exit the application.
+
+### The Chat Interface
+
+When you start a chat, you first select the provider and model you wish to use. The chat session then begins.
+
+- If your prompt template ends with a `User Instruction`, the AI will generate the first response automatically.
+- Type your message and press `Enter`.
+- Use the following special commands in the input box:
+  - `/save`: Saves the full conversation log to the database, associated with the original prompt.
+  - `/exit`: Ends the chat session and returns you to the previous menu.
+
+## Project Structure
+
+The project is organized into logical components within the `src/promptbox` directory.
+
+```
+src/promptbox/
+├── core/         # Core application logic, like configuration (config.py).
+├── db/           # Database setup, session management, and SQLAlchemy models.
+├── models/       # Pydantic data models for data validation and transfer.
+├── services/     # Business logic (LLM integrations, prompt management, chat).
+├── tui/          # All Text-based User Interface code (menus, components, chat UI).
+└── utils/        # Standalone utility functions (e.g., file handlers).
+```
+
+### Key Technologies
+
+- **[Rich](https://github.com/Textualize/rich):** For all TUI rendering, including panels, tables, styled text, and live updates.
+- **[SQLAlchemy](https://www.sqlalchemy.org/):** For the database Object-Relational Mapper (ORM), managing the SQLite database.
+- **[Langchain](https://github.com/langchain-ai/langchain):** For abstracting and simplifying interactions with the various LLM providers.
+
+## Contributing
+
+Contributions are welcome! If you have a suggestion for an improvement or have found a bug, please feel free to open an issue or submit a pull request.
+
+1.  Fork the repository.
+2.  Create a new feature branch (`git checkout -b feature/your-amazing-feature`).
+3.  Commit your changes (`git commit -m 'Add some amazing feature'`).
+4.  Push to the branch (`git push origin feature/your-amazing-feature`).
+5.  Open a Pull Request.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+```
+
+## File: `pyproject.toml`
+
+```toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "promptbox"
+version = "0.2.0"
+authors = [
+    { name="AI Software Architect", email="developer@example.com" },
+]
+description = "A Streamlit application for managing, testing, and interacting with LLM prompts, characters, and scenarios."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "streamlit>=1.33.0",
+    "sqlalchemy>=2.0.29",
+    "requests>=2.31.0",
+    "langchain>=0.1.16",
+    "langchain-community>=0.0.34",
+    "langchain-mistralai",
+    "langchain-groq",
+    "langchain-google-genai",
+    "langchain-openai",
+    "openai>=1.25.1",
+    "mistralai>=0.1.6",
+    "groq>=0.5.0",
+    "google-generativeai>=0.5.2",
+    "ollama>=0.1.8",
+    "pyyaml>=6.0.1",
+    "jinja2>=3.1.3",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.7.1",
+]
+
+```
