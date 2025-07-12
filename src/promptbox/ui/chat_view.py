@@ -108,9 +108,6 @@ def render_chat_ui(llm_service: LLMService, chat_service: ChatService):
     """
     item_name, item_db_id, active_prompt, active_card = get_active_item_info()
 
-    # REMOVED: Faulty state-clearing logic from here.
-
-    # This check now correctly catches if we land on the chat view without context.
     if not item_name and not st.session_state.get("loading_session_flag", False):
         st.error("No active prompt or card selected. Please return to the previous page.")
         if st.button("Go Back"):
@@ -120,7 +117,6 @@ def render_chat_ui(llm_service: LLMService, chat_service: ChatService):
 
     st.header("Chat Session")
 
-    # Initialize state variables if they don't exist
     if "chat_stage" not in st.session_state: st.session_state.chat_stage = "setup"
     if "current_chat_session_id" not in st.session_state: st.session_state.current_chat_session_id = None
     if "current_messages_data" not in st.session_state: st.session_state.current_messages_data = []
@@ -181,30 +177,45 @@ def render_chat_setup_stage(llm_service: LLMService, active_prompt: Optional[Pro
     current_model = st.session_state[mod_key]
 
     initial_text_parts = []
+    item_id = "new"
     if active_prompt:
+        item_id = f"prompt_{active_prompt.id}"
         if active_prompt.system_instruction: initial_text_parts.append(active_prompt.system_instruction)
         if active_prompt.user_instruction: initial_text_parts.append(active_prompt.user_instruction)
         if active_prompt.assistant_instruction: initial_text_parts.append(active_prompt.assistant_instruction)
     elif active_card:
+        item_id = f"card_{active_card.id}"
         if active_card.system_instruction: initial_text_parts.append(active_card.system_instruction)
         if active_card.user_instruction: initial_text_parts.append(active_card.user_instruction)
         if active_card.assistant_instruction: initial_text_parts.append(active_card.assistant_instruction)
     initial_text_content = "\n".join(initial_text_parts)
 
     variables = extract_variables(initial_text_content)
-    variable_values = {}
     if variables:
         st.markdown("---")
         st.subheader("Fill in Variables")
         for var in variables:
-            key_suffix = st.session_state.get('chat_loaded_item_id','default')
-            variable_values[var] = st.text_input(f"Value for `[[{var}]]`:", key=f"var_{var}_setup_{key_suffix}")
+            # Create a unique key for each text input to prevent state conflicts
+            widget_key = f"var_input_{item_id}_{var}"
+            st.text_input(f"Value for `[[{var}]]`:", key=widget_key)
 
     st.markdown("---")
     if st.button("🚀 Start Chat", type="primary", use_container_width=True, disabled=not current_model):
         if not st.session_state.get(prov_key) or not st.session_state.get(mod_key):
             st.error("Please select a Provider and a Model."); return
-        if variables and not all(variable_values.get(v,"").strip() for v in variables if v in variable_values):
+        
+        # ** THE FIX IS HERE **
+        # We now correctly collect the values from the widgets before proceeding.
+        variable_values = {}
+        all_vars_filled = True
+        for var in variables:
+            widget_key = f"var_input_{item_id}_{var}"
+            value = st.session_state.get(widget_key, "").strip()
+            if not value:
+                all_vars_filled = False
+            variable_values[var] = value
+
+        if not all_vars_filled:
             st.error("Please fill in all variable values."); return
 
         st.session_state.chat_provider = st.session_state[prov_key]
@@ -408,7 +419,7 @@ def _clear_chat_transient_state(keep_active_item=False):
         keys_to_clear.extend(["active_prompt", "active_card"])
 
     for key in list(st.session_state.keys()):
-        if key.startswith("var_") and key.endswith("_setup"):
+        if key.startswith("var_input_"):
             keys_to_clear.append(key)
     for key in keys_to_clear:
         if key in st.session_state: del st.session_state[key]

@@ -28,7 +28,7 @@ class PromptData(BaseModel):
     assistant_instruction: Optional[str] = None
 
     @model_validator(mode='after')
-    def check_at_least_one_instruction_prompt(self) -> 'PromptData': # Renamed validator
+    def check_at_least_one_instruction_prompt(self) -> 'PromptData':
         if not any([
             self.system_instruction,
             self.user_instruction,
@@ -40,7 +40,7 @@ class PromptData(BaseModel):
 class CharacterCardData(BaseModel):
     """
     Pydantic model representing a character or scenario card.
-    Now includes structured instruction fields.
+    Updated to include image data and new field structure.
     """
     model_config = ConfigDict(from_attributes=True)
 
@@ -51,22 +51,22 @@ class CharacterCardData(BaseModel):
     folder: str = Field(default="general", min_length=1, description="The folder to categorize the card.")
     description: Optional[str] = None
     type: Literal["character", "scenario"] = Field(default="character", description="The type of the card.")
-    
-    # Replaced 'instructions' with structured instruction fields
-    system_instruction: Optional[str] = None
-    user_instruction: Optional[str] = None
-    assistant_instruction: Optional[str] = None
-    # instructions: str = Field(..., min_length=1, description="The instructions for the AI.") # Removed
+    image_data: Optional[bytes] = None
+
+    # New fields as per user request
+    first_message: Optional[str] = None
+    example_dialog: Optional[str] = None  # Used if type is 'character'
+    example_scene: Optional[str] = None   # Used if type is 'scenario'
+
+    # For handling relationships in the UI and service layer
+    associated_scenarios: List[int] = Field(default_factory=list, description="List of scenario card IDs this character is in.")
+    associated_characters: List[int] = Field(default_factory=list, description="List of character card IDs in this scenario.")
+
 
     @model_validator(mode='after')
-    def check_at_least_one_instruction_card(self) -> 'CharacterCardData': # Renamed validator
-        # For cards, at least one instruction type must be present.
-        if not any([
-            self.system_instruction,
-            self.user_instruction,
-            self.assistant_instruction,
-        ]):
-            raise ValueError("For a Character/Scenario Card, at least one instruction (system, user, or assistant) must be provided.")
+    def check_first_message_exists(self) -> 'CharacterCardData':
+        if not self.first_message:
+            raise ValueError("The 'First Message' field is required for a Character/Scenario Card.")
         return self
 
 
@@ -77,7 +77,7 @@ class ChatMessageData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: Optional[int] = None
-    session_id: int 
+    session_id: int
     role: Literal["system", "user", "assistant", "human"]
     content: str
     message_order: int

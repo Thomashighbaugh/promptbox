@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promptbox"
-version = "0.2.0"
+version = "0.3.1"
 authors = [
-    { name="AI Software Architect", email="developer@example.com" },
+    { name="Promptbox", email="me@thomasleonhighbaugh.me" },
 ]
-description = "A Streamlit application for managing, testing, and interacting with LLM prompts, characters, and scenarios."
+description = "A Streamlit application for managing, testing, and interacting with LLM prompts, LLM character cards, and LLM driven roleplay scenarios driven by numerous free-tier API and ollama integrations."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -39,4 +39,6 @@ dependencies = [
     "jinja2>=3.1.3",
     "python-dotenv>=1.0.1",
     "pydantic>=2.7.1",
+    "Pillow>=10.0.0",
+    "piexif>=1.1.3",
 ]

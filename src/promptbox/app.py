@@ -3,6 +3,7 @@ Main entry point for the Promptbox Streamlit application.
 """
 import sys
 from pathlib import Path
+
 import streamlit as st
 
 # Add src directory to Python path for module resolution
@@ -12,17 +13,18 @@ if str(parent_of_package_dir) not in sys.path:
     sys.path.insert(0, str(parent_of_package_dir))
 
 from promptbox.core.config import settings
-from promptbox.db.connection_manager import init_all_engines, create_all_db_and_tables
+from promptbox.db.connection_manager import create_all_db_and_tables, init_all_engines
+from promptbox.services.backup_service import BackupService
+from promptbox.services.character_service import CharacterService
+from promptbox.services.chat_service import ChatService
 from promptbox.services.llm_service import LLMService
 from promptbox.services.prompt_service import PromptService
-from promptbox.services.character_service import CharacterService
-from promptbox.services.backup_service import BackupService
-from promptbox.services.chat_service import ChatService
-from promptbox.ui.prompt_view import render_prompt_view
-from promptbox.ui.character_view import render_character_view
-from promptbox.ui.chat_view import render_chat_ui, _clear_chat_transient_state
 from promptbox.ui.backup_view import render_backup_view
+from promptbox.ui.character_view import render_character_view
+from promptbox.ui.chat_view import _clear_chat_transient_state, render_chat_ui
+from promptbox.ui.prompt_view import render_prompt_view
 from promptbox.ui.sessions_view import render_sessions_view
+
 
 @st.cache_resource
 def get_llm_service():
@@ -59,7 +61,7 @@ def initialize_app_state():
             st.error(f"Fatal Error: Failed to create/verify database tables: {e}")
             st.error("This might be due to database file issues or permissions. Check logs.")
             st.stop()
-        
+
         st.session_state.app_initialized = True
         st.session_state.previous_view = "home"
 
@@ -70,26 +72,30 @@ def initialize_app_state():
 def clear_view_specific_session_state(new_view: str):
     """Clears session state specific to views when navigating."""
     if new_view != "prompts":
-        if "selected_prompt_id" in st.session_state: del st.session_state.selected_prompt_id
-        if "editing_prompt_data" in st.session_state: del st.session_state.editing_prompt_data
+        if "selected_prompt_id" in st.session_state:
+            del st.session_state.selected_prompt_id
+        if "editing_prompt_data" in st.session_state:
+            del st.session_state.editing_prompt_data
     if new_view != "characters":
-        if "selected_card_id" in st.session_state: del st.session_state.selected_card_id
+        if "selected_card_id" in st.session_state:
+            del st.session_state.selected_card_id
     if new_view != "sessions":
-        if "selected_session_for_actions" in st.session_state: del st.session_state.selected_session_for_actions
-        if "session_detail_id" in st.session_state: del st.session_state.session_detail_id
+        if "selected_session_for_actions" in st.session_state: 
+            del st.session_state.selected_session_for_actions
+        if "session_detail_id" in st.session_state:
+            del st.session_state.session_detail_id
 
 
 def handle_navigation(target_view: str):
     """Handles view changes, including checks for unsaved chat sessions."""
     current_view = st.session_state.get("view", "home")
-    
+
     if current_view == "chat" and st.session_state.get("current_messages_data"):
         # If in chat with unsaved messages, trigger save dialog
         st.session_state.next_chat_stage = target_view
         st.session_state.chat_stage = "ask_save_dialog"
     else:
         # Normal navigation
-        # MODIFIED: Removed the unexpected keyword argument 'clear_view'
         _clear_chat_transient_state() # Clear chat state if navigating away from chat
         clear_view_specific_session_state(target_view)
         st.session_state.previous_view = current_view
@@ -99,7 +105,6 @@ def handle_navigation(target_view: str):
 
 def main():
     st.set_page_config(page_title="promptbox", layout="wide", initial_sidebar_state="expanded")
-    
     initialize_app_state()
 
     llm_service = get_llm_service()
@@ -109,8 +114,8 @@ def main():
     backup_service = get_backup_service(prompt_service, character_service)
 
     with st.sidebar:
-        st.title("📦 promptbox")
-        st.caption("Your Personal LLM Toolkit")
+        st.title("P R O M P T B O X")
+        st.caption("LLM Toolkit")
         st.markdown("---")
 
         if st.button("🏠 Home", use_container_width=True, key="nav_home"):
@@ -127,11 +132,13 @@ def main():
         st.markdown("---")
         st.info(f"""
         **API Keys:** Set in `.env` file.
+        ---
         **Data Root:** `{settings.APP_HOME}`
+         ---
         **DBs:**
-        - Prompts: `{settings.prompts_database_path.name}`
-        - Cards: `{settings.cards_database_path.name}`
-        - Sessions: `{settings.sessions_database_path.name}`
+           - Prompts: `{settings.prompts_database_path.name}`
+           - Cards: `{settings.cards_database_path.name}`
+           - Sessions: `{settings.sessions_database_path.name}`
         Located in: `{settings.data_dir}`
         """)
         st.markdown("---")
@@ -145,16 +152,17 @@ def main():
     current_view = st.session_state.get("view", "home")
 
     if current_view == "home":
-        st.header("Welcome to Promptbox!")
+        st.header("p r o m p t b o x")
+        st.markdown("---")
         st.markdown("""
-        **Promptbox** helps you create, manage, test, and organize your prompts for Large Language Models.
-        Use the navigation panel on the left to explore its features.
+        a place for creating, managing, testing, optimizing and organize LLM prompts.
         """)
-        st.markdown(f"All application data, including databases and backups, is stored in subdirectories within `{settings.APP_HOME}`.")
+        st.markdown(f"Application data, including databases and backups, is stored in subdirectories within `{settings.APP_HOME}`.")
     elif current_view == "prompts":
         render_prompt_view(prompt_service, llm_service)
     elif current_view == "characters":
-        render_character_view(character_service)
+        # FIX: Added the missing llm_service argument to the function call.
+        render_character_view(character_service, llm_service)
     elif current_view == "sessions":
         render_sessions_view(chat_service, prompt_service, character_service)
     elif current_view == "backups":
