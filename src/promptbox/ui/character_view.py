@@ -1,6 +1,7 @@
 """
 Renders the Streamlit UI for managing character and scenario cards using a drill-down navigation.
-Now includes search, image upload, metadata import, associations, and AI generation.
+Now includes search, image import/association, and AI generation.
+Manual image upload and backup functionality have been removed.
 """
 import streamlit as st
 from typing import List, Dict, Optional
@@ -73,7 +74,7 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
             st.rerun()
 
         png_file = st.file_uploader(
-            "📤 Import from .png or .jpg", type=["png", "jpg", "jpeg"], key="png_importer", help="Import a character card from an image's metadata."
+            "📤 Import Card from Image", type=["png", "jpg", "jpeg"], key="png_importer", help="Import a character card and its image from metadata."
         )
         if png_file:
             with st.spinner("Importing from image..."):
@@ -197,9 +198,9 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
         type_val = st.selectbox("Type", ["character", "scenario"], index=["character", "scenario"].index(get_form_value("type", "character")), key=f"{form_key}_type")
         folder = st.text_input("Folder Path", value=get_form_value("folder", "general"), key=f"{form_key}_folder")
 
+        # Display existing image if it exists (from import), but don't allow upload.
         if is_edit and card.image_data:
-            st.image(card.image_data, caption="Current Image", use_column_width=True)
-        uploaded_image = st.file_uploader("Card Image", type=["png", "jpg", "jpeg"])
+            st.image(card.image_data, caption="Associated Image (from import)", use_column_width=True)
 
         st.markdown("**Description**")
         description = st.text_area("Description", value=get_form_value("description"), height=100, label_visibility="collapsed", key=f"{form_key}_description")
@@ -231,7 +232,8 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
         submitted = st.form_submit_button("Save Changes" if is_edit else "Create Card")
 
         if submitted:
-            image_bytes = uploaded_image.getvalue() if uploaded_image else (card.image_data if is_edit else None)
+            # Image data is preserved from the existing card if editing, otherwise it's None.
+            image_bytes = card.image_data if is_edit else None
             try:
                 card_data = CharacterCardData(
                     id=card.id if is_edit else None,
@@ -324,4 +326,3 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
                 st.rerun()
         with col2:
             st.button("🗑️ Delete Card", type="primary", use_container_width=True, on_click=_set_confirm_delete_state_card, args=(card.id,))
-

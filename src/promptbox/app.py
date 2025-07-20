@@ -3,7 +3,6 @@ Main entry point for the Promptbox Streamlit application.
 """
 import sys
 from pathlib import Path
-
 import streamlit as st
 
 # Add src directory to Python path for module resolution
@@ -13,18 +12,15 @@ if str(parent_of_package_dir) not in sys.path:
     sys.path.insert(0, str(parent_of_package_dir))
 
 from promptbox.core.config import settings
-from promptbox.db.connection_manager import create_all_db_and_tables, init_all_engines
-from promptbox.services.backup_service import BackupService
-from promptbox.services.character_service import CharacterService
-from promptbox.services.chat_service import ChatService
+from promptbox.db.connection_manager import init_all_engines, create_all_db_and_tables
 from promptbox.services.llm_service import LLMService
 from promptbox.services.prompt_service import PromptService
-from promptbox.ui.backup_view import render_backup_view
-from promptbox.ui.character_view import render_character_view
-from promptbox.ui.chat_view import _clear_chat_transient_state, render_chat_ui
+from promptbox.services.character_service import CharacterService
+from promptbox.services.chat_service import ChatService
 from promptbox.ui.prompt_view import render_prompt_view
+from promptbox.ui.character_view import render_character_view
+from promptbox.ui.chat_view import render_chat_ui, _clear_chat_transient_state
 from promptbox.ui.sessions_view import render_sessions_view
-
 
 @st.cache_resource
 def get_llm_service():
@@ -41,11 +37,6 @@ def get_character_service():
 @st.cache_resource
 def get_chat_service():
     return ChatService()
-
-@st.cache_resource
-def get_backup_service(_prompt_service, _character_service):
-    return BackupService(_prompt_service, _character_service)
-
 
 def initialize_app_state():
     """Initialize core application state and services if not already present."""
@@ -72,17 +63,17 @@ def initialize_app_state():
 def clear_view_specific_session_state(new_view: str):
     """Clears session state specific to views when navigating."""
     if new_view != "prompts":
-        if "selected_prompt_id" in st.session_state:
+        if "selected_prompt_id" in st.session_state: 
             del st.session_state.selected_prompt_id
-        if "editing_prompt_data" in st.session_state:
+        if "editing_prompt_data" in st.session_state: 
             del st.session_state.editing_prompt_data
     if new_view != "characters":
-        if "selected_card_id" in st.session_state:
+        if "selected_card_id" in st.session_state: 
             del st.session_state.selected_card_id
     if new_view != "sessions":
         if "selected_session_for_actions" in st.session_state: 
             del st.session_state.selected_session_for_actions
-        if "session_detail_id" in st.session_state:
+        if "session_detail_id" in st.session_state: 
             del st.session_state.session_detail_id
 
 
@@ -111,7 +102,6 @@ def main():
     prompt_service = get_prompt_service(llm_service)
     character_service = get_character_service()
     chat_service = get_chat_service()
-    backup_service = get_backup_service(prompt_service, character_service)
 
     with st.sidebar:
         st.title("P R O M P T B O X")
@@ -126,8 +116,6 @@ def main():
             handle_navigation("characters")
         if st.button("💬 Chat Sessions", use_container_width=True, key="nav_sessions"):
             handle_navigation("sessions")
-        if st.button("💾 Backups", use_container_width=True, key="nav_backups"):
-            handle_navigation("backups")
 
         st.markdown("---")
         st.info(f"""
@@ -161,12 +149,9 @@ def main():
     elif current_view == "prompts":
         render_prompt_view(prompt_service, llm_service)
     elif current_view == "characters":
-        # FIX: Added the missing llm_service argument to the function call.
         render_character_view(character_service, llm_service)
     elif current_view == "sessions":
         render_sessions_view(chat_service, prompt_service, character_service)
-    elif current_view == "backups":
-        render_backup_view(backup_service)
     elif current_view == "chat":
         render_chat_ui(llm_service, chat_service)
 
