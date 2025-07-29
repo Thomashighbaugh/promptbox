@@ -10,6 +10,7 @@ from collections import defaultdict
 from promptbox.services.character_service import CharacterService
 from promptbox.services.llm_service import LLMService
 from promptbox.models.data_models import CharacterCardData
+from promptbox.utils.image_handler import read_metadata_from_image
 
 
 def _handle_card_delete(character_service: CharacterService, card_id: int, card_name: str):
@@ -73,35 +74,20 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
             st.session_state.card_form_values = {} # Clear form values
             st.rerun()
 
-        png_file = st.file_uploader(
-            "📤 Import Card from Image", type=["png", "jpg", "jpeg"], key="png_importer", help="Import a character card and its image from metadata."
-        )
-        if png_file:
-            with st.spinner("Importing from image..."):
-                try:
-                    image_bytes = png_file.getvalue()
-                    new_card = character_service.import_card_from_png(image_bytes)
-                    st.success(f"Successfully imported card '{new_card.name}'!")
-                    st.session_state.selected_card_id = new_card.id
-                    st.session_state.card_selected_folder_path = new_card.folder
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Import failed: {e}")
-                    st.error("Ensure the image is a valid character card with metadata in the 'chara' text chunk.")
+        
 
 
     with col_search:
         st.session_state.card_search_query = st.text_input(
             "Search All Cards", value=st.session_state.card_search_query,
-            placeholder="Name, Description, Folder, Type...", label_visibility="collapsed"
-        )
+            placeholder="Name, Description, Folder, Type...", label_visibility="collapsed")
     
     # --- Main two-column layout ---
     col_display, col_form = st.columns([0.55, 0.45], gap="large")
 
     with col_display:
         if st.session_state.card_search_query:
-            st.subheader(f"Search Results for: \"{st.session_state.card_search_query}\"")
+            st.subheader(f"Search Results for: '{st.session_state.card_search_query}'", anchor="search_results")
             all_cards = character_service.search_cards_full_text(st.session_state.card_search_query)
             if not all_cards:
                 st.info("No cards found matching your search query.")
@@ -119,7 +105,7 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
             path_parts = [part for part in current_folder_display_path.split("/") if part]
 
             bc_cols = st.columns(len(path_parts) + 1)
-            if bc_cols[0].button("All Cards (Root)", key="bc_card_root"):
+            if bc_cols[0].button("All Cards (Root)"):
                 st.session_state.card_selected_folder_path = ""
                 st.rerun()
 
@@ -178,9 +164,17 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
         render_card_form(character_service, llm_service, card=active_card_data)
 
 
+
 def render_card_form(character_service: CharacterService, llm_service: LLMService, card: Optional[CharacterCardData] = None):
     is_edit = card is not None
     form_key = f"card_form_edit_{card.id}" if is_edit else "card_form_create"
+
+    # Check for generated content from a previous run and apply it before rendering widgets
+    if "generated_content" in st.session_state:
+        field_key = st.session_state.generated_content["field"]
+        text = st.session_state.generated_content["text"]
+        st.session_state[f"{form_key}_{field_key}"] = text
+        del st.session_state.generated_content
 
     # Helper to get value from session state or card object
     def get_form_value(field_name: str, default: any = "") -> any:
@@ -198,9 +192,43 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
         type_val = st.selectbox("Type", ["character", "scenario"], index=["character", "scenario"].index(get_form_value("type", "character")), key=f"{form_key}_type")
         folder = st.text_input("Folder Path", value=get_form_value("folder", "general"), key=f"{form_key}_folder")
 
-        # Display existing image if it exists (from import), but don't allow upload.
-        if is_edit and card.image_data:
-            st.image(card.image_data, caption="Associated Image (from import)", use_column_width=True)
+        # Image Upload and Display
+        current_image_data = get_form_value("image_data", None)
+        if current_image_data:
+            st.image(current_image_data, caption="Current Card Image", use_column_width=True)
+            if st.checkbox("Remove current image", key=f"{form_key}_remove_image"):
+                current_image_data = None
+                st.session_state[f"{form_key}_image_data"] = None # Clear from session state immediately
+
+        uploaded_file = st.file_uploader("Upload Card Image (PNG/JPG)", type=["png", "jpg", "jpeg"], key=f"{form_key}_image_uploader")
+
+        if uploaded_file is not None:
+            uploaded_image_bytes = uploaded_file.getvalue()
+            try:
+                # Attempt to read metadata from the uploaded image
+                extracted_metadata = read_metadata_from_image(uploaded_image_bytes)
+                if extracted_metadata:
+                    st.info("Metadata found in image! Populating form fields.")
+                    # Update session state with extracted metadata to pre-fill form
+                    for field, value in extracted_metadata.items():
+                        if field in ["name", "description", "first_message", "example_dialog", "example_scene", "folder", "type", "associated_scenarios", "associated_characters"]:
+                            st.session_state[f"{form_key}_{field}"] = value
+                    # Also store the image data itself
+                    st.session_state[f"{form_key}_image_data"] = uploaded_image_bytes
+                else:
+                    st.info("No character card metadata found in image. Image will be saved as-is.")
+                    st.session_state[f"{form_key}_image_data"] = uploaded_image_bytes
+            except Exception as e:
+                st.error(f"Error processing image: {e}. Please try another image.")
+                st.session_state[f"{form_key}_image_data"] = None # Clear problematic image
+        elif current_image_data is not None:
+            # If no new file uploaded, but there was an existing image, keep it unless marked for removal
+            st.session_state[f"{form_key}_image_data"] = current_image_data
+        else:
+            # Ensure image_data is None if no image is present or uploaded
+            st.session_state[f"{form_key}_image_data"] = None
+
+        
 
         st.markdown("**Description**")
         description = st.text_area("Description", value=get_form_value("description"), height=100, label_visibility="collapsed", key=f"{form_key}_description")
@@ -232,14 +260,11 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
         submitted = st.form_submit_button("Save Changes" if is_edit else "Create Card")
 
         if submitted:
-            # Image data is preserved from the existing card if editing, otherwise it's None.
-            image_bytes = card.image_data if is_edit else None
             try:
                 card_data = CharacterCardData(
                     id=card.id if is_edit else None,
                     name=name, type=type_val, folder=folder,
                     description=description or None,
-                    image_data=image_bytes,
                     first_message=first_message or None,
                     example_dialog=example_dialog or None,
                     example_scene=example_scene or None,
@@ -295,16 +320,25 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
                             field = key.replace(f"{form_key}_", "")
                             form_values[field] = st.session_state[key]
 
-                    temp_card_data = CharacterCardData(**form_values)
-                    llm = llm_service.get_chat_model(provider, model)
-                    generated_text = character_service.generate_card_details(field_to_generate_key, temp_card_data, llm)
-
-                    if generated_text:
-                        # Update the specific session state key for the widget to refresh it
-                        st.session_state[f"{form_key}_{field_to_generate_key}"] = generated_text
-                        st.rerun()
+                    if not form_values.get("name"):
+                        st.warning("Please enter a name for the card before generating content.")
                     else:
-                        st.error("Failed to generate content.")
+                        try:
+                            temp_card_data = CharacterCardData(**form_values)
+                            llm = llm_service.get_chat_model(provider, model)
+                            generated_text = character_service.generate_card_details(field_to_generate_key, temp_card_data, llm)
+
+                            if generated_text:
+                                # Set a temporary state to be handled on the next rerun
+                                st.session_state.generated_content = {
+                                    "field": field_to_generate_key,
+                                    "text": generated_text
+                                }
+                                st.rerun()
+                            else:
+                                st.error("Failed to generate content.")
+                        except ValueError as ve:
+                            st.error(f"Validation Error: {ve}")
 
     # === OTHER ACTIONS (OUTSIDE THE FORM) ===
     if is_edit:
