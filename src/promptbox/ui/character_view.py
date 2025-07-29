@@ -74,7 +74,21 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
             st.session_state.card_form_values = {} # Clear form values
             st.rerun()
 
-        
+        png_file = st.file_uploader(
+            "📤 Import Card from Image", type=["png", "jpg", "jpeg"], key="png_importer", help="Import a character card and its image from metadata."
+        )
+        if png_file:
+            with st.spinner("Importing from image..."):
+                try:
+                    image_bytes = png_file.getvalue()
+                    new_card = character_service.import_card_from_png(image_bytes)
+                    st.success(f"Successfully imported card '{new_card.name}'!")
+                    st.session_state.selected_card_id = new_card.id
+                    st.session_state.card_selected_folder_path = new_card.folder
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Import failed: {e}")
+                    st.error("Ensure the image is a valid character card with metadata in the 'chara' text chunk.")
 
 
     with col_search:
@@ -269,7 +283,8 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
                     example_dialog=example_dialog or None,
                     example_scene=example_scene or None,
                     associated_scenarios=selected_scenarios,
-                    associated_characters=selected_characters
+                    associated_characters=selected_characters,
+                    image_data=st.session_state.get(f"{form_key}_image_data")
                 )
                 if is_edit:
                     result = character_service.update_card(card.id, card_data)
