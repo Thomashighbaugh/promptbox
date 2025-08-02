@@ -102,6 +102,7 @@ def handle_navigation(target_view: str):
 
 
 def main():
+    st.info("Main function started.") # Debugging: Confirm main function execution
     st.set_page_config(page_title="promptbox", layout="wide", initial_sidebar_state="expanded")
     
     # Load CSS
@@ -109,10 +110,14 @@ def main():
     project_root = Path(__file__).resolve().parent.parent.parent
     css_file_path = project_root / "static" / "style.css"
 
+    st.info(f"Attempting to load CSS from: {css_file_path}")
+
+
     try:
         with open(css_file_path) as f:
             css_content = f.read()
             st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
+            st.info("CSS content loaded successfully (check console for content).")
             print(f"--- CSS Content from {css_file_path} ---\n{css_content}\n--- End CSS Content ---")
     except FileNotFoundError:
         st.error(f"Error: CSS file not found at {css_file_path}")
@@ -143,6 +148,20 @@ def main():
             handle_navigation("backups")
 
         st.markdown("---")
+        st.info(f"""
+        **API Keys:** Set in `.env` file.
+
+
+        **Data Root:** `{settings.APP_HOME}`
+        
+
+        **DBs:**
+           - Prompts: `{settings.prompts_database_path.name}`
+           - Cards: `{settings.cards_database_path.name}`
+           - Sessions: `{settings.sessions_database_path.name}`
+        Located in: `{settings.data_dir}`
+        """)
+        st.markdown("---")
         if st.button("⚠️ Clear ALL Session State", use_container_width=True, type="secondary", help="Resets UI state. Does not delete data. Use for debugging."):
             app_init_val = st.session_state.get('app_initialized', False)
             st.session_state.clear()
@@ -153,38 +172,20 @@ def main():
     current_view = st.session_state.get("view", "home")
 
     if current_view == "home":
-        with st.container(key="home_container"):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown(' ')
-            with col2:
-                st.image("static/logo.svg" )
-                
-            with col3:
-                st.markdown(' ')
-          
-            st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(' ')
+        with col2:
+            st.image("static/logo.svg" )
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("""
-                   a local, centralized app for creating, managing, testing, optimizing and organize LLM prompts.
-                """)
-            with col2:
-                st.info(f"""
-                  **API Keys:** Set in `.env` file.
-
-
-                    **Data Root:** `{settings.APP_HOME}`
-            
-
-                    **DBs:**
-                        - Prompts: `{settings.prompts_database_path.name}`
-                        - Cards: `{settings.cards_database_path.name}`
-                        - Sessions: `{settings.sessions_database_path.name}`
-                    Located in: `{settings.data_dir}`
-                  """)
-
+        with col3:
+            st.markdown(' ')
+      
+        st.markdown("---")
+        st.markdown("""
+        a local, centralized app for creating, managing, testing, optimizing and organize LLM prompts.
+        """)
+        st.markdown(f"Application data, including databases and backups, is stored in subdirectories within `{settings.APP_HOME}`.")
     elif current_view == "prompts":
         render_prompt_view(prompt_service, llm_service)
     elif current_view == "characters":

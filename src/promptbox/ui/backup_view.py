@@ -13,11 +13,11 @@ def render_backup_view(backup_service: BackupService):
     st.subheader("Create Backups")
     st.markdown("Create a complete backup of your data. It's a good idea to do this regularly!")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if st.button("📦 Backup All Databases", use_container_width=True): # MODIFIED button text
+        if st.button("📦 Backup All Databases", use_container_width=True):
             with st.spinner("Backing up databases..."):
-                results = backup_service.backup_all_core_databases() # MODIFIED call
+                results = backup_service.backup_all_core_databases()
                 all_successful = True
                 messages = []
                 for success, message in results:
@@ -27,14 +27,15 @@ def render_backup_view(backup_service: BackupService):
 
                 if all_successful:
                     st.success("All databases backed up successfully.")
-                    for msg in messages: st.caption(msg) # Show individual success messages
+                    for msg in messages:
+                        st.caption(msg)
                 else:
                     st.error("One or more errors occurred during database backup:")
                     for msg in messages:
                         if "Successfully" in msg:
-                            st.caption(msg) # Show successful ones too
+                            st.caption(msg)
                         else:
-                            st.warning(msg) # Highlight errors
+                            st.warning(msg)
 
     with col2:
         if st.button("📝 Backup Prompts to Markdown", use_container_width=True):
@@ -49,6 +50,15 @@ def render_backup_view(backup_service: BackupService):
         if st.button("🎭 Backup Cards to Markdown", use_container_width=True):
             with st.spinner("Exporting cards to archive..."):
                 success, message = backup_service.backup_cards_to_archive()
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
+    
+    with col4:
+        if st.button("💬 Backup Chat Logs to Markdown", use_container_width=True):
+            with st.spinner("Exporting chat logs to archive..."):
+                success, message = backup_service.backup_chats_to_archive()
                 if success:
                     st.success(message)
                 else:

@@ -2,7 +2,7 @@ import json
 import streamlit as st
 from sqlalchemy import or_
 from langchain_core.language_models import BaseChatModel
-from promptbox.db.connection_manager import get_db, DB_PROMPTS, SQLAlchemySession as Session # MODIFIED IMPORT
+from promptbox.db.connection_manager import get_db, DB_PROMPTS # MODIFIED IMPORT
 from promptbox.db.models import Prompt as PromptDBModel
 from promptbox.models.data_models import PromptData
 from promptbox.services.llm_service import LLMService

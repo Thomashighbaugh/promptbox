@@ -8,14 +8,16 @@ from PIL import Image
 from promptbox.core.config import settings
 from promptbox.services.prompt_service import PromptService
 from promptbox.services.character_service import CharacterService
-from promptbox.models.data_models import PromptData, CharacterCardData
+from promptbox.services.chat_service import ChatService
+from promptbox.models.data_models import PromptData, CharacterCardData, ChatSessionData
 from promptbox.utils.archiver import create_tar_gz_archive
 from promptbox.utils.image_handler import write_metadata_to_png
 
 class BackupService:
-    def __init__(self, prompt_service: PromptService, character_service: CharacterService):
+    def __init__(self, prompt_service: PromptService, character_service: CharacterService, chat_service: ChatService):
         self.prompt_service = prompt_service
         self.character_service = character_service
+        self.chat_service = chat_service
 
     def backup_all_core_databases(self) -> List[Tuple[bool, str]]:
         """Backs up prompts, cards, and sessions databases."""
@@ -167,6 +169,58 @@ class BackupService:
                 f.write(image_with_metadata)
         except Exception as e:
             print(f"Could not write metadata to PNG for card '{card.name}': {e}")
+
+    def backup_chats_to_archive(self) -> Tuple[bool, str]:
+        """Backs up all chat sessions to a compressed archive of Markdown files."""
+        all_chats = self.chat_service.get_all_sessions()
+        if not all_chats:
+            return False, "No chat sessions found to back up."
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for chat in all_chats:
+                self._create_markdown_file_for_chat(chat, temp_dir)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            archive_filename = f"promptbox_chats_markdown_backup_{timestamp}.tar.gz"
+            archive_filepath = settings.backup_dir / archive_filename
+            archive_name_in_tar = f"promptbox_chats_backup_{timestamp}"
+
+            try:
+                result_path = create_tar_gz_archive(temp_dir, archive_filepath, arcname=archive_name_in_tar)
+                if result_path:
+                    return True, f"Successfully created chat session archive: {archive_filepath.name}"
+                else:
+                    return False, "Failed to create the archive file."
+            except Exception as e:
+                return False, f"Failed to create chat session archive: {e}"
+
+    def _create_markdown_file_for_chat(self, chat: ChatSessionData, base_path: str):
+        """Creates a Markdown file for a single chat session."""
+        safe_filename = "".join(c for c in chat.session_name if c.isalnum() or c in (' ', '_', '-')).rstrip()
+        filepath = os.path.join(base_path, f"{safe_filename}_{chat.id}.md")
+
+        # Basic frontmatter
+        frontmatter_parts = [
+            f'session_name: "{chat.session_name}"',
+            f'id: {chat.id}',
+            f'created_at: "{chat.created_at.isoformat() if chat.created_at else ""}"',
+            f'updated_at: "{chat.updated_at.isoformat() if chat.updated_at else ""}"',
+            f'llm_provider: "{chat.llm_provider or "N/A"}"',
+            f'llm_model_name: "{chat.llm_model_name or "N/A"}"',
+        ]
+        frontmatter = "---\n" + "\n".join(frontmatter_parts) + "\n---\n\n"
+
+        # Chat content
+        content = f"# Chat Session: {chat.session_name}\n\n"
+        sorted_messages = sorted(chat.messages, key=lambda m: m.message_order)
+        for msg in sorted_messages:
+            role = msg.role.capitalize()
+            timestamp = msg.timestamp.strftime('%Y-%m-%d %H:%M:%S') if msg.timestamp else "No timestamp"
+            content += f"**[{role}]** - {timestamp}\n\n"
+            content += f"{msg.content}\n\n---\n\n"
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(frontmatter + content.strip())
 
 
 

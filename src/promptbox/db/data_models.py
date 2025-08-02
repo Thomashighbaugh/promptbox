@@ -47,7 +47,7 @@ def init_all_engines() -> bool:
                     echo=False
                 )
                 # Test connection
-                with engine.connect() as connection:
+                with engine.connect():
                     pass # Connection successful
 
                 _engines[db_key] = engine

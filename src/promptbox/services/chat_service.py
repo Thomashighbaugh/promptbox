@@ -92,7 +92,6 @@ class ChatService:
             db.query(ChatMessageDBModel).filter(ChatMessageDBModel.session_id == session_id).delete()
             db.commit() # Commit deletion first
 
-            saved_messages_pydantic = []
             for msg_data in messages:
                 new_message_db = ChatMessageDBModel(
                     session_id=session_id,

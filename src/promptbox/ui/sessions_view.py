@@ -3,11 +3,10 @@ Renders the Streamlit UI for managing saved chat sessions.
 """
 import streamlit as st
 import pandas as pd
-from typing import List
 from promptbox.services.chat_service import ChatService
 from promptbox.services.prompt_service import PromptService
 from promptbox.services.character_service import CharacterService
-from promptbox.models.data_models import ChatSessionData, ChatMessageData
+from promptbox.models.data_models import ChatSessionData
 from promptbox.ui.chat_view import _clear_chat_transient_state
 
 # --- Callback Functions for Actions (More reliable than if-button blocks) ---
@@ -85,6 +84,8 @@ def render_sessions_view(
         st.session_state.selected_session_for_actions = None
     if "confirming_delete_session_id" not in st.session_state:
         st.session_state.confirming_delete_session_id = None
+    if "session_dataframe_display" not in st.session_state:
+        st.session_state.session_dataframe_display = None
 
     sessions = chat_service.get_all_chat_sessions()
 
@@ -115,7 +116,6 @@ def render_sessions_view(
         df,
         hide_index=True,
         use_container_width=True,
-        key="session_dataframe_display",
         on_select="rerun",
         selection_mode="single-row"
     )
@@ -143,14 +143,12 @@ def render_sessions_view(
                 c1_del, c2_del, _ = st.columns([1, 1, 3])
                 c1_del.button(
                     "✅ Yes, Delete",
-                    key=f"confirm_del_btn_{session_details.id}",
                     use_container_width=True,
                     on_click=_handle_session_delete,
                     args=(chat_service, session_details.id)
                 )
                 c2_del.button(
                     "❌ No, Cancel",
-                    key=f"cancel_del_btn_{session_details.id}",
                     use_container_width=True,
                     on_click=_cancel_delete_state
                 )
@@ -169,9 +167,11 @@ def render_sessions_view(
                 if session_details.messages:
                     for msg in sorted(session_details.messages, key=lambda m: m.message_order):
                         role_for_display = msg.role.lower()
-                        if role_for_display == "human": role_for_display = "user"
-                        if role_for_display == "ai": role_for_display = "assistant"
-                        with st.chat_message(role_for_display):
+                        if role_for_display == "human":
+                            role_for_display = "user"
+                        if role_for_display == "ai":
+                            role_for_display = "assistant"
+                        with st.chat_message(role_for_display, key=f"chat_message_{msg.id}"):
                             st.markdown(msg.content)
                 else:
                     st.info("No messages found for this session.")

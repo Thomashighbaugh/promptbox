@@ -10,7 +10,7 @@ from collections import defaultdict
 from promptbox.services.character_service import CharacterService
 from promptbox.services.llm_service import LLMService
 from promptbox.models.data_models import CharacterCardData
-from promptbox.utils.image_handler import read_metadata_from_image
+from promptbox.utils.image_handler import read_metadata_from_image, ImageMetadataError
 
 
 def _handle_card_delete(character_service: CharacterService, card_id: int, card_name: str):
@@ -50,6 +50,38 @@ def get_card_folder_structure(cards: List[CharacterCardData]) -> Dict:
     return root_node
 
 
+def _handle_overwrite_card(character_service: CharacterService):
+    """Callback to overwrite an existing card with imported data."""
+    if "conflicting_import_data" in st.session_state:
+        conflicting_card = st.session_state.conflicting_import_data
+        existing_card = character_service.get_card_by_name(conflicting_card.name)
+        if existing_card:
+            # Preserve relationships from the existing card if the import doesn't specify any
+            if not conflicting_card.associated_scenarios and existing_card.associated_scenarios:
+                conflicting_card.associated_scenarios = existing_card.associated_scenarios
+            if not conflicting_card.associated_characters and existing_card.associated_characters:
+                conflicting_card.associated_characters = existing_card.associated_characters
+            
+            updated_card = character_service.update_card(existing_card.id, conflicting_card)
+            if updated_card:
+                st.toast(f"Card '{updated_card.name}' overwritten successfully.", icon="✅")
+                st.session_state.selected_card_id = updated_card.id
+            else:
+                st.error("Failed to overwrite the card.")
+        else:
+            # This case should ideally not be reached if the flow is correct
+            st.error(f"Could not find the original card '{conflicting_card.name}' to overwrite.")
+        
+        # Clean up session state
+        del st.session_state.conflicting_import_data
+        st.rerun()
+
+def _cancel_overwrite():
+    """Callback to cancel the overwrite operation."""
+    if "conflicting_import_data" in st.session_state:
+        del st.session_state.conflicting_import_data
+    st.rerun()
+
 def render_character_view(character_service: CharacterService, llm_service: LLMService):
     st.header("Manage Characters & Scenarios")
 
@@ -64,6 +96,21 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
         st.session_state.confirming_delete_card_id = None
     if "card_form_values" not in st.session_state:
         st.session_state.card_form_values = {}
+    if "conflicting_import_data" not in st.session_state:
+        st.session_state.conflicting_import_data = None
+
+    # --- Overwrite Confirmation Dialog ---
+    if st.session_state.conflicting_import_data:
+        card_name = st.session_state.conflicting_import_data.name
+        st.warning(f"**A card named '{card_name}' already exists.**")
+        st.write("Do you want to overwrite the existing card with the imported data?")
+        
+        col1, col2, _ = st.columns([1, 1, 3])
+        col1.button("✅ Yes, Overwrite", use_container_width=True, on_click=_handle_overwrite_card, args=(character_service,))
+        col2.button("❌ No, Cancel", use_container_width=True, on_click=_cancel_overwrite)
+        
+        # Stop further rendering below this point until the conflict is resolved
+        return
 
     # --- Top Level Actions ---
     col_actions, col_search = st.columns([1, 2])
@@ -81,14 +128,25 @@ def render_character_view(character_service: CharacterService, llm_service: LLMS
             with st.spinner("Importing from image..."):
                 try:
                     image_bytes = png_file.getvalue()
-                    new_card = character_service.import_card_from_png(image_bytes)
-                    st.success(f"Successfully imported card '{new_card.name}'!")
-                    st.session_state.selected_card_id = new_card.id
-                    st.session_state.card_selected_folder_path = new_card.folder
-                    st.rerun()
-                except Exception as e:
+                    imported_card_data, has_conflict, missing_fields = character_service.import_card_from_png(image_bytes)
+
+                    if missing_fields:
+                        st.warning(f"The following fields were not found in the image metadata and have been left empty: {', '.join(missing_fields)}")
+
+                    if has_conflict:
+                        st.session_state.conflicting_import_data = imported_card_data
+                        st.rerun()
+                    else:
+                        new_card = character_service.create_card(imported_card_data)
+                        st.success(f"Successfully imported new card '{new_card.name}'!")
+                        st.session_state.selected_card_id = new_card.id
+                        st.session_state.card_selected_folder_path = new_card.folder
+                        st.rerun()
+                except ImageMetadataError as e:
                     st.error(f"Import failed: {e}")
                     st.error("Ensure the image is a valid character card with metadata in the 'chara' text chunk.")
+                except Exception as e:
+                    st.error(f"An unexpected error occurred during import: {e}")
 
 
     with col_search:
@@ -209,7 +267,7 @@ def render_card_form(character_service: CharacterService, llm_service: LLMServic
         # Image Upload and Display
         current_image_data = get_form_value("image_data", None)
         if current_image_data:
-            st.image(current_image_data, caption="Current Card Image", use_column_width=True)
+            st.image(current_image_data, caption="Current Card Image", use_container_width=True)
             if st.checkbox("Remove current image", key=f"{form_key}_remove_image"):
                 current_image_data = None
                 st.session_state[f"{form_key}_image_data"] = None # Clear from session state immediately

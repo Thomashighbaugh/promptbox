@@ -16,7 +16,7 @@ def _handle_prompt_delete(prompt_service: PromptService, prompt_id: int, prompt_
     """Callback to delete a prompt and reset UI state."""
     if prompt_service.delete_prompt(prompt_id):
         st.toast(f"Prompt '{prompt_name}' deleted successfully.", icon="✅")
-        # Reset state to remove the deleted item from the view
+        # Reset state to remove the deleted item from view
         st.session_state.selected_prompt_id = None
         st.session_state.editing_prompt_data = None
         st.session_state.confirming_delete_prompt_id = None
@@ -58,11 +58,16 @@ def render_prompt_view(prompt_service: PromptService, llm_service: LLMService):
     st.header("Manage Prompts")
 
     # Initialize session state variables
-    if "prompt_search_query" not in st.session_state: st.session_state.prompt_search_query = ""
-    if "prompt_selected_folder_path" not in st.session_state: st.session_state.prompt_selected_folder_path = ""
-    if "selected_prompt_id" not in st.session_state: st.session_state.selected_prompt_id = None
-    if "editing_prompt_data" not in st.session_state: st.session_state.editing_prompt_data = None
-    if "confirming_delete_prompt_id" not in st.session_state: st.session_state.confirming_delete_prompt_id = None
+    if "prompt_search_query" not in st.session_state:
+        st.session_state.prompt_search_query = ""
+    if "prompt_selected_folder_path" not in st.session_state:
+        st.session_state.prompt_selected_folder_path = ""
+    if "selected_prompt_id" not in st.session_state:
+        st.session_state.selected_prompt_id = None
+    if "editing_prompt_data" not in st.session_state:
+        st.session_state.editing_prompt_data = None
+    if "confirming_delete_prompt_id" not in st.session_state:
+        st.session_state.confirming_delete_prompt_id = None
 
 
     col_create, col_search, col_filter_jump = st.columns([1,2,1])
@@ -116,7 +121,7 @@ def render_prompt_view(prompt_service: PromptService, llm_service: LLMService):
 
     with col_display:
         if st.session_state.prompt_search_query:
-            st.subheader(f"Search Results for: \"{st.session_state.prompt_search_query}\"")
+            st.subheader(f"Search Results for: '{st.session_state.prompt_search_query}'", anchor="search_results")
             searched_prompts = prompt_service.search_prompts_full_text(st.session_state.prompt_search_query)
             if not searched_prompts:
                 st.info("No prompts found matching your search query.")
@@ -133,7 +138,7 @@ def render_prompt_view(prompt_service: PromptService, llm_service: LLMService):
             path_parts = [part for part in current_folder_display_path.split("/") if part]
 
             bc_cols = st.columns(len(path_parts) + 1)
-            if bc_cols[0].button("All Prompts (Root)", key="bc_root"):
+            if bc_cols[0].button("All Prompts (Root)"):
                 st.session_state.prompt_selected_folder_path = ""
                 st.rerun()
 
@@ -216,10 +221,12 @@ def render_create_form(prompt_service: PromptService, key_suffix: str, default_f
 
         if st.form_submit_button("Create Prompt"):
             if not name.strip():
-                st.error("The 'Name' field is required."); return
+                st.error("The 'Name' field is required.")
+                return
 
             folder_val = folder.strip("/").strip()
-            if not folder_val: folder_val = ""
+            if not folder_val:
+                folder_val = ""
 
             try:
                 prompt_data = PromptData(
@@ -254,10 +261,12 @@ def render_edit_form(prompt_service: PromptService, llm_service: LLMService, pro
 
         if st.form_submit_button("Save Changes"):
             if not name.strip():
-                st.error("The 'Name' field is required."); return
+                st.error("The 'Name' field is required.")
+                return
 
             folder_val = folder.strip("/").strip()
-            if not folder_val: folder_val = ""
+            if not folder_val:
+                folder_val = ""
 
             try:
                 updated_prompt_data = PromptData(

@@ -1,17 +1,15 @@
 """
 Service layer for handling business logic related to Character Cards.
 """
-import json
 from typing import List, Optional
 
 import streamlit as st
 from langchain_core.language_models import BaseChatModel
-from sqlalchemy.orm import selectinload
 
 from promptbox.db.connection_manager import DB_CARDS, get_db
 from promptbox.db.models import CharacterCard as CharacterCardDBModel
 from promptbox.models.data_models import CharacterCardData
-from promptbox.utils.image_handler import read_metadata_from_image
+from promptbox.utils.image_handler import read_metadata_from_image, ImageMetadataError
 
 
 class CharacterService:
@@ -134,33 +132,64 @@ class CharacterService:
             ).order_by(CharacterCardDBModel.folder, CharacterCardDBModel.name).all()
             return [self._db_to_pydantic(r) for r in results]
 
-    def import_card_from_png(self, image_bytes: bytes) -> CharacterCardData:
-        metadata = read_metadata_from_image(image_bytes)
-        if not metadata:
-            raise ValueError("Could not find or parse character data in the image's metadata.")
+    def get_card_by_name(self, name: str) -> Optional[CharacterCardData]:
+        with get_db(DB_CARDS) as db:
+            # Use ilike for case-insensitive comparison
+            card = db.query(CharacterCardDBModel).filter(CharacterCardDBModel.name.ilike(name)).first()
+            return self._db_to_pydantic(card) if card else None
 
-        # The 'spec' field determines which version of the character card format is used.
+    def import_card_from_png(self, image_bytes: bytes) -> tuple[CharacterCardData, bool, list[str]]:
+        metadata = None
+        try:
+            metadata = read_metadata_from_image(image_bytes)
+        except ImageMetadataError as e:
+            st.error(f"Error reading image metadata: {e}")
+
+        if not metadata:
+            st.warning("No character card metadata found in image. Creating a basic card.")
+            card_data = CharacterCardData(name="Imported Image Card", image_data=image_bytes)
+            existing_card = self.get_card_by_name(card_data.name)
+            return card_data, existing_card is not None, []
+
+        st.info("Metadata found in image. Processing card data.")
         spec = metadata.get('spec', 'chara_card_v2')
+        data = metadata.get('data', {}) if spec == 'chara_card_v2' else metadata
+        
+        missing_fields = []
+
+        name = data.get("name", "Unnamed Import").strip()
+        if not data.get("name"):
+            missing_fields.append("Name")
+
+        description = data.get("description", "")
+        if not description:
+            missing_fields.append("Description")
+
+        personality = data.get("personality", "")
+        if personality:
+            description = f"{description}\n\n{personality}".strip()
+
+        first_message = data.get("first_mes" if spec == 'chara_card_v2' else "first_message", "")
+        if not first_message:
+            missing_fields.append("First Message")
+
+        example_dialog = data.get("mes_example" if spec == 'chara_card_v2' else "example_dialog", "")
+        if not example_dialog:
+            missing_fields.append("Example Dialog")
 
         params = {
-            "type": "character",  # Default type
+            "name": name,
+            "description": description,
+            "first_message": first_message,
+            "example_dialog": example_dialog,
+            "type": "character",
             "image_data": image_bytes
         }
 
-        if spec == 'chara_card_v2':
-            data = metadata.get('data', {})
-            params["name"] = data.get("name", "Unnamed Import")
-            params["description"] = data.get("description")
-            params["first_message"] = data.get("first_mes")
-            params["example_dialog"] = data.get("mes_example")
-        else:  # Basic fallback for other or older formats
-            params["name"] = metadata.get("name", "Unnamed Import")
-            params["description"] = metadata.get("description")
-            params["first_message"] = metadata.get("first_message")
-            params["example_dialog"] = metadata.get("example_dialog")
-
         card_data = CharacterCardData(**params)
-        return self.create_card(card_data)
+        existing_card = self.get_card_by_name(card_data.name)
+        
+        return card_data, existing_card is not None, missing_fields
 
     def generate_card_details(self, field_to_generate: str, card_data: CharacterCardData, llm: BaseChatModel) -> str | None:
         """Generates content for a specific field of a character card using an LLM."""
