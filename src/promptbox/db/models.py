@@ -4,19 +4,8 @@ Models are now separated into different Bases with their own MetaData
 to support multiple database files.
 """
 import datetime
-from sqlalchemy import (
-    ForeignKey,
-    String,
-    DateTime,
-    Text,
-    Integer,
-    func,
-    MetaData,
-    Table,
-    Column,
-    LargeBinary,
-)
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table, MetaData, LargeBinary, func # type: ignore
+from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column, DeclarativeBase # type: ignore
 
 # --- Metadata and Base for Prompts Database ---
 prompts_metadata = MetaData()

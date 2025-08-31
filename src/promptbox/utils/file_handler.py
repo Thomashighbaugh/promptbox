@@ -3,7 +3,7 @@ Contains utility functions for handling files, particularly markdown
 with YAML frontmatter.
 """
 
-import yaml
+import yaml # type: ignore
 from pathlib import Path
 from typing import Tuple, Dict, Any
 

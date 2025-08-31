@@ -172,7 +172,7 @@ class BackupService:
 
     def backup_chats_to_archive(self) -> Tuple[bool, str]:
         """Backs up all chat sessions to a compressed archive of Markdown files."""
-        all_chats = self.chat_service.get_all_sessions()
+        all_chats = self.chat_service.get_all_chat_sessions()
         if not all_chats:
             return False, "No chat sessions found to back up."
 

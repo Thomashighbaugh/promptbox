@@ -162,26 +162,20 @@ class CharacterService:
             missing_fields.append("Name")
 
         description = data.get("description", "")
-        if not description:
-            missing_fields.append("Description")
-
         personality = data.get("personality", "")
         if personality:
             description = f"{description}\n\n{personality}".strip()
 
         first_message = data.get("first_mes" if spec == 'chara_card_v2' else "first_message", "")
-        if not first_message:
-            missing_fields.append("First Message")
-
         example_dialog = data.get("mes_example" if spec == 'chara_card_v2' else "example_dialog", "")
-        if not example_dialog:
-            missing_fields.append("Example Dialog")
+        example_scene = data.get("example_scene", "") # Ensure example_scene is also extracted if present
 
         params = {
             "name": name,
             "description": description,
             "first_message": first_message,
             "example_dialog": example_dialog,
+            "example_scene": example_scene, # Added example_scene to params
             "type": "character",
             "image_data": image_bytes
         }

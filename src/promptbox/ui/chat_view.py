@@ -69,16 +69,13 @@ def initialize_chat_messages_from_item(
             messages.append(ChatMessageData(session_id=0, role="assistant", content=content, message_order=order, timestamp=datetime.now()))
             order += 1
     elif card_data:
-        if card_data.system_instruction:
-            content = substitute_variables(card_data.system_instruction, variable_context)
+        # For character cards, use description as system instruction and first_message as assistant message
+        if card_data.description:
+            content = substitute_variables(card_data.description, variable_context)
             messages.append(ChatMessageData(session_id=0, role="system", content=content, message_order=order, timestamp=datetime.now()))
             order += 1
-        if card_data.user_instruction:
-            content = substitute_variables(card_data.user_instruction, variable_context)
-            messages.append(ChatMessageData(session_id=0, role="user", content=content, message_order=order, timestamp=datetime.now()))
-            order += 1
-        if card_data.assistant_instruction:
-            content = substitute_variables(card_data.assistant_instruction, variable_context)
+        if card_data.first_message:
+            content = substitute_variables(card_data.first_message, variable_context)
             messages.append(ChatMessageData(session_id=0, role="assistant", content=content, message_order=order, timestamp=datetime.now()))
             order += 1
     return messages
@@ -197,12 +194,10 @@ def render_chat_setup_stage(llm_service: LLMService, active_prompt: Optional[Pro
             initial_text_parts.append(active_prompt.assistant_instruction)
     elif active_card:
         item_id = f"card_{active_card.id}"
-        if active_card.system_instruction:
-            initial_text_parts.append(active_card.system_instruction)
-        if active_card.user_instruction:
-            initial_text_parts.append(active_card.user_instruction)
-        if active_card.assistant_instruction:
-            initial_text_parts.append(active_card.assistant_instruction)
+        if active_card.description:
+            initial_text_parts.append(active_card.description)
+        if active_card.first_message:
+            initial_text_parts.append(active_card.first_message)
     initial_text_content = "\n".join(initial_text_parts)
 
     variables = extract_variables(initial_text_content)

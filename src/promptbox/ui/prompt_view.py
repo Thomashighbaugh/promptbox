@@ -278,12 +278,18 @@ def render_edit_form(prompt_service: PromptService, llm_service: LLMService, pro
                     user_instruction=user_instruction or None,
                     assistant_instruction=assistant_instruction or None,
                 )
-                updated_prompt = prompt_service.update_prompt(prompt.id, updated_prompt_data)
-                st.success(f"Prompt '{updated_prompt.name}' updated successfully!")
-                st.session_state.editing_prompt_data = None
-                st.session_state.prompt_search_query = ""
-                st.session_state.prompt_selected_folder_path = updated_prompt.folder
-                st.rerun()
+                if prompt.id is not None: # Ensure prompt.id is not None
+                    updated_prompt = prompt_service.update_prompt(prompt.id, updated_prompt_data)
+                    if updated_prompt: # Check if updated_prompt is not None
+                        st.success(f"Prompt '{updated_prompt.name}' updated successfully!")
+                        st.session_state.editing_prompt_data = None
+                        st.session_state.prompt_search_query = ""
+                        st.session_state.prompt_selected_folder_path = updated_prompt.folder
+                        st.rerun()
+                    else:
+                        st.error(f"Failed to update prompt '{name}'.")
+                else:
+                    st.error("Cannot update prompt: ID is missing.")
             except ValueError as ve:
                  st.error(f"Validation Error: {ve}")
             except Exception as e:

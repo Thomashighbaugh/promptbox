@@ -1,10 +1,12 @@
 # `promptbox` - Streamlit Edition
 
+![logo](static/logo.svg)
+
 **A user-friendly Streamlit application for creating, managing, testing, and interacting with Large Language Model (LLM) prompts, characters, and chat sessions.**
 
 `promptbox` provides a local-first, web-based UI to streamline your workflow with LLMs. It helps you organize your prompt library, define reusable character/scenario cards, test them in an interactive chat interface, and save your valuable chat sessions for later review or continuation.
 
-![promptbox_streamlit_screenshot_placeholder](static/logo.svg)
+![Screenshot](static/screenshot.png)
 
 ---
 
@@ -20,3 +22,4 @@ For detailed information about the project, please refer to our comprehensive do
 ## License
 
 This project is licensed under the MIT License.
+

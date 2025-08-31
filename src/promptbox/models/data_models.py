@@ -64,9 +64,15 @@ class CharacterCardData(BaseModel):
 
 
     @model_validator(mode='after')
-    def check_first_message_exists(self) -> 'CharacterCardData':
-        if not self.first_message:
-            raise ValueError("The 'First Message' field is required for a Character/Scenario Card.")
+    def check_required_fields_exist(self) -> 'CharacterCardData':
+        if not any([
+            self.description,
+            self.first_message,
+            self.example_dialog if self.type == 'character' else None,
+            self.example_scene if self.type == 'scenario' else None,
+            self.image_data, # Allow image-only cards
+        ]):
+            raise ValueError("At least one of 'description', 'first_message', 'example_dialog' (for character cards), 'example_scene' (for scenario cards), or 'image_data' must be provided.")
         return self
 
 

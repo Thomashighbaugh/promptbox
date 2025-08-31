@@ -4,9 +4,8 @@ standard 'chara' tEXt chunk format for PNG character cards.
 """
 import json
 import base64
-from PIL import Image, PngImagePlugin
-import io
-import piexif
+from PIL import Image # type: ignore
+import piexif # type: ignore
 
 class ImageMetadataError(Exception):
     """Custom exception for errors related to image metadata processing."""

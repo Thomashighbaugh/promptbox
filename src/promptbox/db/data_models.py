@@ -2,7 +2,9 @@
 Manages database connections and session creation for multiple databases.
 (Formerly data_models.py in the same directory, renamed for clarity)
 """
-import streamlit as st
+import streamlit as st # type: ignore
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table # type: ignore
+from sqlalchemy.orm import relationship # type: ignore
 from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession # Renamed to avoid conflict with typing.Session

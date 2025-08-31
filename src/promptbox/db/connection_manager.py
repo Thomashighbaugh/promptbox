@@ -6,7 +6,7 @@ import streamlit as st
 from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession # Renamed to avoid conflict with typing.Session
-from typing import Dict, Literal
+from typing import Dict, Literal, Final
 
 from promptbox.core.config import settings
 from promptbox.db.models import prompts_metadata, cards_metadata, sessions_metadata # MODIFIED IMPORT
@@ -14,9 +14,10 @@ from promptbox.db.models import prompts_metadata, cards_metadata, sessions_metad
 _engines: Dict[str, any] = {}
 _session_locals: Dict[str, sessionmaker] = {}
 
-DB_PROMPTS = "prompts"
-DB_CARDS = "cards"
-DB_SESSIONS = "sessions"
+# Define database keys as Final Literal strings for type checking
+DB_PROMPTS: Final[Literal["prompts"]] = "prompts"
+DB_CARDS: Final[Literal["cards"]] = "cards"
+DB_SESSIONS: Final[Literal["sessions"]] = "sessions"
 
 DATABASE_CONFIG: Dict[str, Dict[str, any]] = {
     DB_PROMPTS: {
